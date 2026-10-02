@@ -1,0 +1,56 @@
+{
+  "version": "2026-09-06",
+  "owner": "Creative & Brand Director",
+  "notes": [
+    "Spine/header accent only — single colour per FLASH tile; never full OEM takeover.",
+    "assessment_slug must match Tech274/sktrck365 OEM_NAMES (src/lib/assessment.ts).",
+    "logo_file is catalogue-33/for-github/ filename → copy to public/logos/oem/ (also keep azure.svg/gcp.svg aliases where product already expects them).",
+    "Wave A = assessment slug live today. Wave B = logo ready; Eng must add OEM_NAMES before FLASH ships with assessment?oem=."
+  ],
+  "aliases_for_repo": {
+    "microsoft-azure.svg": "also publish as azure.svg",
+    "google-cloud.svg": "also publish as gcp.svg",
+    "terraform.svg": "HashiCorp track; assessment_slug hashicorp until Eng splits Terraform"
+  },
+  "wave_a": [
+    {"oem":"AWS","assessment_slug":"aws","logo_file":"aws.svg","flash_default":"aws.svg","accent":"#FF9900","display":"AWS"},
+    {"oem":"Microsoft Azure","assessment_slug":"azure","logo_file":"microsoft-azure.svg","flash_default":"microsoft-azure.svg","accent":"#0078D4","display":"Azure","also_as":["azure.svg"]},
+    {"oem":"Google Cloud","assessment_slug":"gcp","logo_file":"google-cloud.svg","flash_default":"google-cloud.svg","accent":"#4285F4","display":"Google Cloud","also_as":["gcp.svg"]},
+    {"oem":"Salesforce","assessment_slug":"salesforce","logo_file":"salesforce.svg","flash_default":"salesforce.svg","accent":"#0D9DDA","display":"Salesforce"},
+    {"oem":"ServiceNow","assessment_slug":"servicenow","logo_file":"servicenow.svg","flash_default":"servicenow.svg","accent":"#81B5A1","display":"ServiceNow","note":"Prefer color mark on cream/navy; avoid servicenow-white on cream"},
+    {"oem":"PMI","assessment_slug":"pmi","logo_file":"pmi.png","flash_default":"pmi.png","accent":"#1D4F91","display":"PMI"},
+    {"oem":"CompTIA","assessment_slug":"comptia","logo_file":"comptia.png","flash_default":"comptia.png","accent":"#C8102E","display":"CompTIA"},
+    {"oem":"HashiCorp / Terraform","assessment_slug":"hashicorp","logo_file":"terraform.svg","flash_default":"terraform.svg","accent":"#7B42BC","display":"HashiCorp","note":"Use Terraform mark until hashicorp.svg added; CTA assessment?oem=hashicorp"},
+    {"oem":"Snowflake","assessment_slug":"snowflake","logo_file":"snowflake.svg","flash_default":"snowflake.svg","accent":"#29B5E8","display":"Snowflake"},
+    {"oem":"Databricks","assessment_slug":"databricks","logo_file":"databricks.png","flash_default":"databricks.png","accent":"#FF3621","display":"Databricks"},
+    {"oem":"Cisco","assessment_slug":"cisco","logo_file":"cisco.svg","flash_default":"cisco.svg","accent":"#049FD9","display":"Cisco"},
+    {"oem":"Kubernetes","assessment_slug":"kubernetes","logo_file":"kubernetes.svg","flash_default":"kubernetes.svg","accent":"#326CE5","display":"Kubernetes"}
+  ],
+  "wave_b": [
+    {"oem":"Adobe","assessment_slug":"adobe","logo_file":"adobe.svg","flash_default":"adobe.svg","accent":"#EB1000","display":"Adobe","needs":"OEM_NAMES + vendor match"},
+    {"oem":"Cloudera","assessment_slug":"cloudera","logo_file":"cloudera.png","flash_default":"cloudera.png","accent":"#F79022","display":"Cloudera","needs":"OEM_NAMES"},
+    {"oem":"CyberArk","assessment_slug":"cyberark","logo_file":"cyberark.svg","flash_default":"cyberark.svg","accent":"#00ADEF","display":"CyberArk","needs":"OEM_NAMES"},
+    {"oem":"EC-Council","assessment_slug":"ec-council","logo_file":"ec-council.jpg","flash_default":"ec-council.jpg","accent":"#00A3E0","display":"EC-Council","needs":"OEM_NAMES"},
+    {"oem":"ISACA","assessment_slug":"isaca","logo_file":"isaca.svg","flash_default":"isaca.svg","accent":"#003865","display":"ISACA","needs":"OEM_NAMES"},
+    {"oem":"ISTQB","assessment_slug":"istqb","logo_file":"istqb.svg","flash_default":"istqb.svg","accent":"#1B75BB","display":"ISTQB","needs":"OEM_NAMES"},
+    {"oem":"ITIL","assessment_slug":"itil","logo_file":"itil.svg","flash_default":"itil.svg","accent":"#00A1DE","display":"ITIL","needs":"OEM_NAMES"},
+    {"oem":"Juniper","assessment_slug":"juniper","logo_file":"juniper.svg","flash_default":"juniper.svg","accent":"#84B135","display":"Juniper","needs":"OEM_NAMES"},
+    {"oem":"MuleSoft","assessment_slug":"mulesoft","logo_file":"mulesoft.svg","flash_default":"mulesoft.svg","accent":"#00A0DF","display":"MuleSoft","needs":"OEM_NAMES"},
+    {"oem":"Oracle","assessment_slug":"oracle","logo_file":"oracle.svg","flash_default":"oracle.svg","accent":"#C74634","display":"Oracle","needs":"OEM_NAMES"},
+    {"oem":"Pega","assessment_slug":"pega","logo_file":"pega.svg","flash_default":"pega.svg","accent":"#E8114B","display":"Pega","needs":"OEM_NAMES"},
+    {"oem":"PRINCE2","assessment_slug":"prince2","logo_file":"prince2.svg","flash_default":"prince2.svg","accent":"#00A1DE","display":"PRINCE2","needs":"OEM_NAMES"},
+    {"oem":"Python","assessment_slug":"python","logo_file":"python.svg","flash_default":"python.svg","accent":"#3776AB","display":"Python","needs":"OEM_NAMES"},
+    {"oem":"SAP","assessment_slug":"sap","logo_file":"sap.svg","flash_default":"sap.svg","accent":"#008FD3","display":"SAP","needs":"OEM_NAMES"},
+    {"oem":"SAS","assessment_slug":"sas","logo_file":"sas.png","flash_default":"sas.png","accent":"#0C7CBA","display":"SAS","needs":"OEM_NAMES"},
+    {"oem":"Scaled Agile","assessment_slug":"scaled-agile","logo_file":"scaled-agile.jpg","flash_default":"scaled-agile.jpg","accent":"#006666","display":"Scaled Agile","needs":"OEM_NAMES"},
+    {"oem":"Scrum","assessment_slug":"scrum","logo_file":"scrum.svg","flash_default":"scrum.svg","accent":"#009CDE","display":"Scrum","needs":"OEM_NAMES"},
+    {"oem":"Six Sigma","assessment_slug":"six-sigma","logo_file":"six-sigma.png","flash_default":"six-sigma.png","accent":"#003366","display":"Six Sigma","needs":"OEM_NAMES"},
+    {"oem":"Tableau","assessment_slug":"tableau","logo_file":"tableau.svg","flash_default":"tableau.svg","accent":"#E97627","display":"Tableau","needs":"OEM_NAMES"},
+    {"oem":"The Open Group","assessment_slug":"the-open-group","logo_file":"the-open-group.png","flash_default":"the-open-group.png","accent":"#0066A1","display":"The Open Group","needs":"OEM_NAMES"},
+    {"oem":"VMware","assessment_slug":"vmware","logo_file":"vmware.svg","flash_default":"vmware.svg","accent":"#607078","display":"VMware","needs":"OEM_NAMES"}
+  ],
+  "held": {
+    "LI_covers": ["LI-03","LI-06"],
+    "note": "SF LinkedIn covers held; Salesforce FLASH wave_a OK (assessment?oem=salesforce)"
+  }
+}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /org
+Disallow: /labs
+Disallow: /api/
+Sitemap: https://skilltrack.co.in/sitemap.xml

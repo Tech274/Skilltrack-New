@@ -1,0 +1,1598 @@
+{
+  "aws": [
+    {
+      "examId": "AWS-002",
+      "name": "AWS Certified AI Practitioner",
+      "code": "AIF-C01",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AWS-001",
+      "name": "AWS Certified Cloud Practitioner",
+      "code": "CLF-C02",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AWS-005",
+      "name": "AWS Certified CloudOps Engineer - Associate",
+      "code": "SOA-C03",
+      "level": "Associate"
+    },
+    {
+      "examId": "AWS-006",
+      "name": "AWS Certified Data Engineer - Associate",
+      "code": "DEA-C01",
+      "level": "Associate"
+    },
+    {
+      "examId": "AWS-004",
+      "name": "AWS Certified Developer - Associate",
+      "code": "DVA-C02",
+      "level": "Associate"
+    },
+    {
+      "examId": "AWS-007",
+      "name": "AWS Certified Machine Learning Engineer - Associate",
+      "code": "MLA-C01",
+      "level": "Associate"
+    },
+    {
+      "examId": "AWS-003",
+      "name": "AWS Certified Solutions Architect - Associate",
+      "code": "SAA-C03",
+      "level": "Associate"
+    },
+    {
+      "examId": "AWS-009",
+      "name": "AWS Certified DevOps Engineer - Professional",
+      "code": "DOP-C02",
+      "level": "Professional"
+    },
+    {
+      "examId": "AWS-010",
+      "name": "AWS Certified Generative AI Developer - Professional",
+      "code": "AIP-C01",
+      "level": "Professional"
+    },
+    {
+      "examId": "AWS-008",
+      "name": "AWS Certified Solutions Architect - Professional",
+      "code": "SAP-C02",
+      "level": "Professional"
+    },
+    {
+      "examId": "AWS-011",
+      "name": "AWS Certified Advanced Networking - Specialty",
+      "code": "ANS-C01",
+      "level": "Specialty"
+    },
+    {
+      "examId": "AWS-012",
+      "name": "AWS Certified Security - Specialty",
+      "code": "SCS-C03",
+      "level": "Specialty"
+    }
+  ],
+  "cisco": [
+    {
+      "examId": "CSC-004",
+      "name": "Cisco Certified Field Technician (CCT)",
+      "code": "800-150",
+      "level": "Foundational"
+    },
+    {
+      "examId": "CSC-003",
+      "name": "Cisco Certified Support Technician (CCST) Cybersecurity",
+      "code": "100-160",
+      "level": "Foundational"
+    },
+    {
+      "examId": "CSC-001",
+      "name": "Cisco Certified Support Technician (CCST) IT Support",
+      "code": "100-140",
+      "level": "Foundational"
+    },
+    {
+      "examId": "CSC-002",
+      "name": "Cisco Certified Support Technician (CCST) Networking",
+      "code": "100-150",
+      "level": "Foundational"
+    },
+    {
+      "examId": "CSC-005",
+      "name": "Cisco Certified Network Associate (CCNA)",
+      "code": "200-301",
+      "level": "Associate"
+    },
+    {
+      "examId": "CSC-007",
+      "name": "Cisco Certified Network Associate (CCNA) Automation",
+      "code": "200-901",
+      "level": "Associate"
+    },
+    {
+      "examId": "CSC-006",
+      "name": "Cisco Certified Network Associate (CCNA) Cybersecurity",
+      "code": "200-201",
+      "level": "Associate"
+    },
+    {
+      "examId": "CSC-014",
+      "name": "Cisco Certified Network Professional (CCNP) Automation",
+      "code": "350-901",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-012",
+      "name": "Cisco Certified Network Professional (CCNP) Collaboration",
+      "code": "350-801",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-015",
+      "name": "Cisco Certified Network Professional (CCNP) Cybersecurity",
+      "code": "350-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-011",
+      "name": "Cisco Certified Network Professional (CCNP) Data Center",
+      "code": "350-601",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-008",
+      "name": "Cisco Certified Network Professional (CCNP) Enterprise",
+      "code": "350-401",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-010",
+      "name": "Cisco Certified Network Professional (CCNP) Security",
+      "code": "350-701",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-013",
+      "name": "Cisco Certified Network Professional (CCNP) Service Provider",
+      "code": "350-501",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-009",
+      "name": "Cisco Certified Network Professional (CCNP) Wireless",
+      "code": "350-101",
+      "level": "Professional"
+    },
+    {
+      "examId": "CSC-051",
+      "name": "Cisco Certified Automation Specialist - Core",
+      "code": "350-901",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-053",
+      "name": "Cisco Certified Automation Specialist - Data Center Automation and Programmability",
+      "code": "300-635",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-052",
+      "name": "Cisco Certified Automation Specialist - Enterprise Automation and Programmability",
+      "code": "300-435",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-041",
+      "name": "Cisco Certified Specialist - Collaboration Call Control and Mobility Implementation",
+      "code": "300-815",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-043",
+      "name": "Cisco Certified Specialist - Collaboration Cloud Customer Experience",
+      "code": "300-830",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-042",
+      "name": "Cisco Certified Specialist - Collaboration Cloud and Edge Implementation",
+      "code": "300-820",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-040",
+      "name": "Cisco Certified Specialist - Collaboration Core",
+      "code": "350-801",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-054",
+      "name": "Cisco Certified Specialist - Cybersecurity Core",
+      "code": "350-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-055",
+      "name": "Cisco Certified Specialist - Cybersecurity Forensic Analysis and Incident Response",
+      "code": "300-215",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-038",
+      "name": "Cisco Certified Specialist - Data Center ACI Implementation",
+      "code": "300-620",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-039",
+      "name": "Cisco Certified Specialist - Data Center AI Infrastructure",
+      "code": "300-640",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-035",
+      "name": "Cisco Certified Specialist - Data Center Core",
+      "code": "350-601",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-036",
+      "name": "Cisco Certified Specialist - Data Center Design",
+      "code": "300-610",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-037",
+      "name": "Cisco Certified Specialist - Data Center Operations",
+      "code": "300-615",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-034",
+      "name": "Cisco Certified Specialist - Designing Cisco Security Infrastructure",
+      "code": "300-745",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-025",
+      "name": "Cisco Certified Specialist - Enterprise Advanced Infrastructure Implementation",
+      "code": "300-410",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-028",
+      "name": "Cisco Certified Specialist - Enterprise Cloud Connectivity",
+      "code": "300-440",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-024",
+      "name": "Cisco Certified Specialist - Enterprise Core",
+      "code": "350-401",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-027",
+      "name": "Cisco Certified Specialist - Enterprise Design",
+      "code": "300-420",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-029",
+      "name": "Cisco Certified Specialist - Enterprise Network Assurance",
+      "code": "300-445",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-026",
+      "name": "Cisco Certified Specialist - Enterprise SD-WAN Implementation",
+      "code": "300-415",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-033",
+      "name": "Cisco Certified Specialist - Secure Cloud Access",
+      "code": "300-740",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-031",
+      "name": "Cisco Certified Specialist - Securing Networks with Cisco Firewalls",
+      "code": "300-710",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-030",
+      "name": "Cisco Certified Specialist - Security Core",
+      "code": "350-701",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-032",
+      "name": "Cisco Certified Specialist - Security Identity Management Implementation",
+      "code": "300-715",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-045",
+      "name": "Cisco Certified Specialist - Service Provider Advanced Routing Implementation",
+      "code": "300-510",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-047",
+      "name": "Cisco Certified Specialist - Service Provider Cloud Network Infrastructure",
+      "code": "300-540",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-044",
+      "name": "Cisco Certified Specialist - Service Provider Core",
+      "code": "350-501",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-046",
+      "name": "Cisco Certified Specialist - Service Provider VPN Services Implementation",
+      "code": "300-515",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-056",
+      "name": "Cisco Certified Specialist - Threat Hunting and Defending",
+      "code": "300-220",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-050",
+      "name": "Cisco Certified Specialist - Wireless Advanced Solutions",
+      "code": "300-120",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-048",
+      "name": "Cisco Certified Specialist - Wireless Core",
+      "code": "350-101",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-049",
+      "name": "Cisco Certified Specialist - Wireless Design",
+      "code": "300-110",
+      "level": "Specialty"
+    },
+    {
+      "examId": "CSC-023",
+      "name": "Cisco Certified Design Expert (CCDE)",
+      "code": "400-007",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-022",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Automation",
+      "code": "350-901",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-020",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Collaboration",
+      "code": "350-801",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-019",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Data Center",
+      "code": "350-601",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-016",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Enterprise Infrastructure",
+      "code": "350-401",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-018",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Security",
+      "code": "350-701",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-021",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Service Provider",
+      "code": "350-501",
+      "level": "Expert"
+    },
+    {
+      "examId": "CSC-017",
+      "name": "Cisco Certified Internetwork Expert (CCIE) Wireless",
+      "code": "350-101",
+      "level": "Expert"
+    }
+  ],
+  "comptia": [
+    {
+      "examId": "COMP-002",
+      "name": "CompTIA A+ Core 1",
+      "code": "220-1201",
+      "level": "Foundational"
+    },
+    {
+      "examId": "COMP-003",
+      "name": "CompTIA A+ Core 2",
+      "code": "220-1202",
+      "level": "Foundational"
+    },
+    {
+      "examId": "COMP-001",
+      "name": "CompTIA Tech+",
+      "code": "FC0-U71",
+      "level": "Foundational"
+    },
+    {
+      "examId": "COMP-006",
+      "name": "CompTIA Cloud+",
+      "code": "CV0-004",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-009",
+      "name": "CompTIA Data+",
+      "code": "DA0-002",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-010",
+      "name": "CompTIA DataSys+",
+      "code": "DS0-001",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-007",
+      "name": "CompTIA Linux+",
+      "code": "XK0-006",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-004",
+      "name": "CompTIA Network+",
+      "code": "N10-009",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-011",
+      "name": "CompTIA Project+",
+      "code": "PK0-005",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-005",
+      "name": "CompTIA Security+",
+      "code": "SY0-701",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-008",
+      "name": "CompTIA Server+",
+      "code": "SK0-005",
+      "level": "Associate"
+    },
+    {
+      "examId": "COMP-016",
+      "name": "CompTIA CloudNetX",
+      "code": "CNX-001",
+      "level": "Professional"
+    },
+    {
+      "examId": "COMP-012",
+      "name": "CompTIA CySA+",
+      "code": "CS0-004",
+      "level": "Professional"
+    },
+    {
+      "examId": "COMP-015",
+      "name": "CompTIA DataAI",
+      "code": "DY0-001",
+      "level": "Professional"
+    },
+    {
+      "examId": "COMP-013",
+      "name": "CompTIA PenTest+",
+      "code": "PT0-003",
+      "level": "Professional"
+    },
+    {
+      "examId": "COMP-014",
+      "name": "CompTIA SecurityX",
+      "code": "CAS-005",
+      "level": "Professional"
+    },
+    {
+      "examId": "COMP-018",
+      "name": "CompTIA AutoOps+",
+      "code": "AT0-001",
+      "level": "Specialty"
+    },
+    {
+      "examId": "COMP-017",
+      "name": "CompTIA SecAI+",
+      "code": "CY0-001",
+      "level": "Specialty"
+    }
+  ],
+  "databricks": [
+    {
+      "examId": "DBX-003",
+      "name": "AI Agent Fundamentals Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-006",
+      "name": "AWS Platform Architect Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-004",
+      "name": "Analytics Fundamentals Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-007",
+      "name": "Azure Platform Architect Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-001",
+      "name": "Databricks Fundamentals Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-008",
+      "name": "GCP Platform Architect Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-002",
+      "name": "Generative AI Fundamentals Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-005",
+      "name": "Platform Administrator Accreditation",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "DBX-014",
+      "name": "Databricks Certified Associate Developer for Apache Spark",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-013",
+      "name": "Databricks Certified Context Engineer Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-009",
+      "name": "Databricks Certified Data Analyst Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-010",
+      "name": "Databricks Certified Data Engineer Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-012",
+      "name": "Databricks Certified Generative AI Engineer Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-011",
+      "name": "Databricks Certified Machine Learning Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "DBX-015",
+      "name": "Databricks Certified Data Engineer Professional",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "DBX-016",
+      "name": "Databricks Certified Machine Learning Professional",
+      "code": "",
+      "level": "Professional"
+    }
+  ],
+  "google-cloud": [
+    {
+      "examId": "GCP-001",
+      "name": "Cloud Digital Leader",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "GCP-002",
+      "name": "Generative AI Leader",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "GCP-003",
+      "name": "Associate Cloud Engineer",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "GCP-004",
+      "name": "Associate Data Practitioner",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "GCP-005",
+      "name": "Associate Google Workspace Administrator",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "GCP-006",
+      "name": "Professional Cloud Architect",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-007",
+      "name": "Professional Cloud Database Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-010",
+      "name": "Professional Cloud DevOps Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-008",
+      "name": "Professional Cloud Developer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-012",
+      "name": "Professional Cloud Network Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-011",
+      "name": "Professional Cloud Security Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-009",
+      "name": "Professional Data Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-013",
+      "name": "Professional Machine Learning Engineer",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "GCP-014",
+      "name": "Professional Security Operations Engineer",
+      "code": "",
+      "level": "Professional"
+    }
+  ],
+  "kubernetes": [
+    {
+      "examId": "K8S-004",
+      "name": "Kubernetes and Cloud Native Associate",
+      "code": "KCNA",
+      "level": "Foundational"
+    },
+    {
+      "examId": "K8S-005",
+      "name": "Kubernetes and Cloud Native Security Associate",
+      "code": "KCSA",
+      "level": "Foundational"
+    },
+    {
+      "examId": "K8S-009",
+      "name": "Certified Argo Project Associate",
+      "code": "CAPA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-011",
+      "name": "Certified Backstage Associate",
+      "code": "CBA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-014",
+      "name": "Certified Cloud Native Platform Engineering Associate",
+      "code": "CNPA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-010",
+      "name": "Certified GitOps Associate",
+      "code": "CGOA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-008",
+      "name": "Cilium Certified Associate",
+      "code": "CCA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-007",
+      "name": "Istio Certified Associate",
+      "code": "ICA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-013",
+      "name": "Kyverno Certified Associate",
+      "code": "KCA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-012",
+      "name": "OpenTelemetry Certified Associate",
+      "code": "OTCA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-006",
+      "name": "Prometheus Certified Associate",
+      "code": "PCA",
+      "level": "Associate"
+    },
+    {
+      "examId": "K8S-015",
+      "name": "Certified Cloud Native Platform Engineer",
+      "code": "CNPE",
+      "level": "Professional"
+    },
+    {
+      "examId": "K8S-001",
+      "name": "Certified Kubernetes Administrator",
+      "code": "CKA",
+      "level": "Professional"
+    },
+    {
+      "examId": "K8S-002",
+      "name": "Certified Kubernetes Application Developer",
+      "code": "CKAD",
+      "level": "Professional"
+    },
+    {
+      "examId": "K8S-003",
+      "name": "Certified Kubernetes Security Specialist",
+      "code": "CKS",
+      "level": "Specialty"
+    }
+  ],
+  "microsoft-azure": [
+    {
+      "examId": "AZ-002",
+      "name": "Azure AI Fundamentals",
+      "code": "AI-901",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AZ-003",
+      "name": "Azure Data Fundamentals",
+      "code": "DP-900",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AZ-001",
+      "name": "Azure Fundamentals",
+      "code": "AZ-900",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AZ-004",
+      "name": "Security, Compliance, and Identity Fundamentals",
+      "code": "SC-900",
+      "level": "Foundational"
+    },
+    {
+      "examId": "AZ-012",
+      "name": "Azure AI Apps and Agents Developer Associate",
+      "code": "AI-103",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-013",
+      "name": "Azure AI Cloud Developer Associate",
+      "code": "AI-200",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-005",
+      "name": "Azure Administrator Associate",
+      "code": "AZ-104",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-011",
+      "name": "Azure Database Administrator Associate",
+      "code": "DP-300",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-006",
+      "name": "Azure Network Engineer Associate",
+      "code": "AZ-700",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-007",
+      "name": "Azure Security Engineer Associate",
+      "code": "AZ-500",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-008",
+      "name": "Cloud and AI Security Engineer Associate",
+      "code": "SC-500",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-010",
+      "name": "Identity and Access Administrator Associate",
+      "code": "SC-300",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-009",
+      "name": "Security Operations Analyst Associate",
+      "code": "SC-200",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-014",
+      "name": "Windows Server Hybrid Administrator Associate",
+      "code": "AZ-800 + AZ-801",
+      "level": "Associate"
+    },
+    {
+      "examId": "AZ-020",
+      "name": "Azure Cosmos DB Developer Specialty",
+      "code": "DP-420",
+      "level": "Specialty"
+    },
+    {
+      "examId": "AZ-018",
+      "name": "Azure Virtual Desktop Specialty",
+      "code": "AZ-140",
+      "level": "Specialty"
+    },
+    {
+      "examId": "AZ-019",
+      "name": "Azure for SAP Workloads Specialty",
+      "code": "AZ-120",
+      "level": "Specialty"
+    },
+    {
+      "examId": "AZ-015",
+      "name": "Azure Solutions Architect Expert",
+      "code": "AZ-305",
+      "level": "Expert"
+    },
+    {
+      "examId": "AZ-017",
+      "name": "Cybersecurity Architect Expert",
+      "code": "SC-100",
+      "level": "Expert"
+    },
+    {
+      "examId": "AZ-016",
+      "name": "DevOps Engineer Expert",
+      "code": "AZ-400",
+      "level": "Expert"
+    }
+  ],
+  "pmi": [
+    {
+      "examId": "PMI-001",
+      "name": "Certified Associate in Project Management",
+      "code": "CAPM",
+      "level": "Foundational"
+    },
+    {
+      "examId": "PMI-005",
+      "name": "PMI Agile Certified Practitioner",
+      "code": "PMI-ACP",
+      "level": "Professional"
+    },
+    {
+      "examId": "PMI-002",
+      "name": "Project Management Professional",
+      "code": "PMP",
+      "level": "Professional"
+    },
+    {
+      "examId": "PMI-011",
+      "name": "Certified Sustainable Project Professional",
+      "code": "CSPP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-012",
+      "name": "PMI Certified Professional in Managing AI",
+      "code": "PMI-CPMAI",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-010",
+      "name": "PMI Construction Professional",
+      "code": "PMI-CP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-009",
+      "name": "PMI PMO Certified Professional",
+      "code": "PMI-PMOCP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-008",
+      "name": "PMI Professional in Business Analysis",
+      "code": "PMI-PBA",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-006",
+      "name": "PMI Risk Management Professional",
+      "code": "PMI-RMP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-007",
+      "name": "PMI Scheduling Professional",
+      "code": "PMI-SP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "PMI-004",
+      "name": "Portfolio Management Professional",
+      "code": "PfMP",
+      "level": "Expert"
+    },
+    {
+      "examId": "PMI-003",
+      "name": "Program Management Professional",
+      "code": "PgMP",
+      "level": "Expert"
+    }
+  ],
+  "salesforce": [
+    {
+      "examId": "SF-003",
+      "name": "Salesforce Certified Agentforce Sales Foundations",
+      "code": "Sales-101",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SF-002",
+      "name": "Salesforce Certified Marketing Cloud Engagement Foundations",
+      "code": "MC-101",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SF-001",
+      "name": "Salesforce Certified Platform Foundations",
+      "code": "Plat-101",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SF-007",
+      "name": "Salesforce Certified Business Analyst",
+      "code": "BA-201",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-013",
+      "name": "Salesforce Certified JavaScript Developer",
+      "code": "JS-Dev-101",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-009",
+      "name": "Salesforce Certified Marketing Cloud Engagement Administrator",
+      "code": "MCE-Admn-201",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-031",
+      "name": "Salesforce Certified Marketing Cloud Engagement Specialist",
+      "code": "MC-202",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-004",
+      "name": "Salesforce Certified Platform Administrator",
+      "code": "Plat-Admn-201",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-006",
+      "name": "Salesforce Certified Platform App Builder",
+      "code": "Plat-Admn-202",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-011",
+      "name": "Salesforce Certified Platform Developer",
+      "code": "Plat-Dev-201",
+      "level": "Associate"
+    },
+    {
+      "examId": "SF-020",
+      "name": "Salesforce Certified Agentforce Field Service and Operations Consultant",
+      "code": "FS-Con-101",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-022",
+      "name": "Salesforce Certified Agentforce Life Sciences Consultant",
+      "code": "Als-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-021",
+      "name": "Salesforce Certified Agentforce Nonprofit Consultant",
+      "code": "NP-Con-102",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-018",
+      "name": "Salesforce Certified Agentforce Sales Consultant",
+      "code": "Sales-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-019",
+      "name": "Salesforce Certified Agentforce Service Consultant",
+      "code": "Service-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-027",
+      "name": "Salesforce Certified CRM Analytics and Einstein Discovery Consultant",
+      "code": "Analytics-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-024",
+      "name": "Salesforce Certified Data 360 Consultant",
+      "code": "Data-Con-101",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-023",
+      "name": "Salesforce Certified Experience Cloud Consultant",
+      "code": "EX-Con-101",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-029",
+      "name": "Salesforce Certified Marketing Cloud Engagement Consultant",
+      "code": "MCE-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-030",
+      "name": "Salesforce Certified Marketing Cloud Next Consultant",
+      "code": "MC-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-026",
+      "name": "Salesforce Certified Omnistudio Consultant",
+      "code": "Plat-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-005",
+      "name": "Salesforce Certified Platform Administrator II",
+      "code": "Plat-Admn-301",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-012",
+      "name": "Salesforce Certified Platform Developer II",
+      "code": "Plat-Dev-301",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-025",
+      "name": "Salesforce Certified Revenue Management Consultant",
+      "code": "Rev-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-028",
+      "name": "Salesforce Certified Slack Consultant",
+      "code": "Slack-Con-201",
+      "level": "Professional"
+    },
+    {
+      "examId": "SF-008",
+      "name": "Salesforce Certified Agentforce Specialist",
+      "code": "AI-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-014",
+      "name": "Salesforce Certified B2C Commerce Developer",
+      "code": "Comm-Dev-101",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-040",
+      "name": "Salesforce Certified Heroku Architect",
+      "code": "Plat-Arch-206",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-032",
+      "name": "Salesforce Certified Marketing Cloud Account Engagement Specialist",
+      "code": "MC-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-017",
+      "name": "Salesforce Certified Marketing Cloud Engagement Developer",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-015",
+      "name": "Salesforce Certified Omnistudio Developer",
+      "code": "Plat-Dev-210",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-035",
+      "name": "Salesforce Certified Platform Data Architect",
+      "code": "Plat-Arch-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-036",
+      "name": "Salesforce Certified Platform Development Lifecycle and Deployment Architect",
+      "code": "Plat-Arch-202",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-037",
+      "name": "Salesforce Certified Platform Identity and Access Management Architect",
+      "code": "Plat-Arch-203",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-038",
+      "name": "Salesforce Certified Platform Integration Architect",
+      "code": "Plat-Arch-204",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-039",
+      "name": "Salesforce Certified Platform Sharing and Visibility Architect",
+      "code": "Plat-Arch-205",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-034",
+      "name": "Salesforce Certified Platform Strategy Designer",
+      "code": "Plat-UX-102",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-033",
+      "name": "Salesforce Certified Platform User Experience Designer",
+      "code": "Plat-UX-101",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-010",
+      "name": "Salesforce Certified Slack Administrator",
+      "code": "Slack-Admn-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-016",
+      "name": "Salesforce Certified Slack Developer",
+      "code": "Slack-Dev-201",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SF-041",
+      "name": "Salesforce Certified Application Architect",
+      "code": "App-Arch-301",
+      "level": "Expert"
+    },
+    {
+      "examId": "SF-043",
+      "name": "Salesforce Certified B2C Solution Architect",
+      "code": "Arch-302",
+      "level": "Expert"
+    },
+    {
+      "examId": "SF-042",
+      "name": "Salesforce Certified System Architect",
+      "code": "Sys-Arch-301",
+      "level": "Expert"
+    },
+    {
+      "examId": "SF-044",
+      "name": "Salesforce Certified Technical Architect",
+      "code": "Plat-Arch-401",
+      "level": "Expert"
+    }
+  ],
+  "servicenow": [
+    {
+      "examId": "SNW-042",
+      "name": "Micro-Certification - Agentic AI Executive",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SNW-044",
+      "name": "Micro-Certification - Executive Citizen Developer",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SNW-043",
+      "name": "Micro-Certification - Now Assist Executive",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SNW-025",
+      "name": "Micro-Certification - Welcome to ServiceNow",
+      "code": "",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SNW-002",
+      "name": "ServiceNow Certified Application Developer",
+      "code": "CAD",
+      "level": "Associate"
+    },
+    {
+      "examId": "SNW-003",
+      "name": "ServiceNow Certified Platform Owner Associate",
+      "code": "",
+      "level": "Associate"
+    },
+    {
+      "examId": "SNW-001",
+      "name": "ServiceNow Certified System Administrator",
+      "code": "CSA",
+      "level": "Associate"
+    },
+    {
+      "examId": "SNW-006",
+      "name": "Certified Implementation Specialist - Customer Service Management",
+      "code": "CIS-CSM",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-008",
+      "name": "Certified Implementation Specialist - Data Foundations (CMDB and CSDM)",
+      "code": "CIS-DF",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-007",
+      "name": "Certified Implementation Specialist - Field Service Management",
+      "code": "CIS-FSM",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-005",
+      "name": "Certified Implementation Specialist - Human Resources",
+      "code": "CIS-HRSD",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-004",
+      "name": "Certified Implementation Specialist - IT Service Management",
+      "code": "CIS-ITSM",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-021",
+      "name": "ServiceNow Architecture Excellence",
+      "code": "ArchX",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNW-009",
+      "name": "Certified Implementation Specialist - Discovery",
+      "code": "CIS-Disco",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-011",
+      "name": "Certified Implementation Specialist - Event Management",
+      "code": "CIS-EM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-013",
+      "name": "Certified Implementation Specialist - Hardware Asset Management",
+      "code": "CIS-HAM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-018",
+      "name": "Certified Implementation Specialist - Platform Analytics",
+      "code": "CIS-PA",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-016",
+      "name": "Certified Implementation Specialist - Risk and Compliance",
+      "code": "CIS-RC",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-015",
+      "name": "Certified Implementation Specialist - Security Incident Response",
+      "code": "CIS-SIR",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-010",
+      "name": "Certified Implementation Specialist - Service Mapping",
+      "code": "CIS-SM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-020",
+      "name": "Certified Implementation Specialist - Service Provider",
+      "code": "CIS-SP",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-012",
+      "name": "Certified Implementation Specialist - Software Asset Management",
+      "code": "CIS-SAM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-019",
+      "name": "Certified Implementation Specialist - Strategic Portfolio Management",
+      "code": "CIS-SPM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-017",
+      "name": "Certified Implementation Specialist - Third-Party Risk Management",
+      "code": "CIS-TPRM",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-014",
+      "name": "Certified Implementation Specialist - Vulnerability Response",
+      "code": "CIS-VR",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-038",
+      "name": "Micro-Certification - Agile and Test Management Implementation",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-031",
+      "name": "Micro-Certification - Automated Test Framework",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-039",
+      "name": "Micro-Certification - Business Continuity Management",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-033",
+      "name": "Micro-Certification - CMDB Health",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-032",
+      "name": "Micro-Certification - Configure the CMDB",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-037",
+      "name": "Micro-Certification - DevOps Change Velocity",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-026",
+      "name": "Micro-Certification - Flow Designer",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-027",
+      "name": "Micro-Certification - Integration Hub",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-035",
+      "name": "Micro-Certification - Introduction to App Engine Studio",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-034",
+      "name": "Micro-Certification - Platform Analytics",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-041",
+      "name": "Micro-Certification - Playbooks Advanced",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-040",
+      "name": "Micro-Certification - Playbooks Essentials",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-030",
+      "name": "Micro-Certification - Predictive Intelligence",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-029",
+      "name": "Micro-Certification - Service Portal",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-036",
+      "name": "Micro-Certification - UI Builder",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-028",
+      "name": "Micro-Certification - Virtual Agent",
+      "code": "",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNW-024",
+      "name": "ServiceNow Certified CRM Architect",
+      "code": "CRMA",
+      "level": "Expert"
+    },
+    {
+      "examId": "SNW-023",
+      "name": "ServiceNow Certified Master Architect",
+      "code": "CMA",
+      "level": "Expert"
+    },
+    {
+      "examId": "SNW-022",
+      "name": "ServiceNow Certified Technical Architect",
+      "code": "CTA",
+      "level": "Expert"
+    }
+  ],
+  "snowflake": [
+    {
+      "examId": "SNF-001",
+      "name": "SnowPro Associate: Platform Certification",
+      "code": "SOL-C01",
+      "level": "Foundational"
+    },
+    {
+      "examId": "SNF-002",
+      "name": "SnowPro Core Certification",
+      "code": "COF-C03",
+      "level": "Associate"
+    },
+    {
+      "examId": "SNF-004",
+      "name": "SnowPro Advanced: Administrator",
+      "code": "ADA-C02",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNF-003",
+      "name": "SnowPro Advanced: Architect",
+      "code": "",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNF-007",
+      "name": "SnowPro Advanced: Data Analyst",
+      "code": "DAA-C01",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNF-005",
+      "name": "SnowPro Advanced: Data Engineer",
+      "code": "DEA-C02",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNF-006",
+      "name": "SnowPro Advanced: Data Scientist",
+      "code": "DSA-C03",
+      "level": "Professional"
+    },
+    {
+      "examId": "SNF-008",
+      "name": "SnowPro Specialty: Gen AI",
+      "code": "GES-C01",
+      "level": "Specialty"
+    },
+    {
+      "examId": "SNF-009",
+      "name": "SnowPro Specialty: Snowpark",
+      "code": "SPS-C01",
+      "level": "Specialty"
+    }
+  ],
+  "terraform": [
+    {
+      "examId": "TF-001",
+      "name": "HashiCorp Certified: Terraform Associate (004)",
+      "code": "004",
+      "level": "Associate"
+    },
+    {
+      "examId": "TF-002",
+      "name": "HashiCorp Certified: Terraform Authoring and Operations Professional",
+      "code": "",
+      "level": "Professional"
+    }
+  ]
+}

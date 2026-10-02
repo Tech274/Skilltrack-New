@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.auto_promote_super_admin() FROM PUBLIC, anon, authenticated;

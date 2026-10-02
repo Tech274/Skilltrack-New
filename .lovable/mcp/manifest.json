@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://nhzyfwprgblqfpejtgle.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "skilltrack-365",
+      "version": "0.1.0",
+      "title": "SkillTrack-365"
+    },
+    "tools": [
+      {
+        "name": "search_certifications",
+        "title": "Search certification catalog",
+        "description": "Search the SkillTrack-365 certification catalog by name, vendor, category or skill. Returns matching published certifications with slug, vendor, level and estimated cost.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Free-text search over certification name, vendor and category."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximum number of results to return (1-25). Defaults to 10."
+            }
+          },
+          "required": [
+            "query",
+            "limit"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_certifications",
+        "title": "List my tracked certifications",
+        "description": "List the certifications the signed-in user is tracking, with status, study hours logged, target date and latest mock score.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Optional status filter, e.g. planned, in_progress, completed. Use an empty string for all."
+            }
+          },
+          "required": [
+            "status"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "track_certification",
+        "title": "Track or update a certification",
+        "description": "Start tracking a certification for the signed-in user, or update an existing tracked certification's status, target date, study hours or notes.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "certification_slug": {
+              "type": "string",
+              "description": "Catalog slug of the certification, e.g. aws-saa-c03."
+            },
+            "status": {
+              "type": "string",
+              "description": "Tracking status: planned, in_progress, or completed. Empty string keeps the current value."
+            },
+            "target_date": {
+              "type": "string",
+              "description": "Target exam date as YYYY-MM-DD. Empty string leaves it unset."
+            },
+            "study_hours": {
+              "type": "number",
+              "description": "Total study hours logged so far. Use a negative number to leave unchanged."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Free-form notes. Empty string leaves notes unchanged."
+            }
+          },
+          "required": [
+            "certification_slug",
+            "status",
+            "target_date",
+            "study_hours",
+            "notes"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_milestones",
+        "title": "List study milestones",
+        "description": "List the signed-in user's study milestones with due dates and completion state, optionally filtered to a single certification slug.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "certification_slug": {
+              "type": "string",
+              "description": "Optional certification slug filter. Empty string returns all."
+            },
+            "only_open": {
+              "type": "boolean",
+              "description": "When true, return only milestones that are not yet completed."
+            }
+          },
+          "required": [
+            "certification_slug",
+            "only_open"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "complete_milestone",
+        "title": "Complete or reopen a milestone",
+        "description": "Mark one of the signed-in user's study milestones as completed, or reopen it by clearing its completion timestamp.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "milestone_id": {
+              "type": "string",
+              "description": "The milestone id returned by list_milestones."
+            },
+            "completed": {
+              "type": "boolean",
+              "description": "True to mark completed, false to reopen the milestone."
+            }
+          },
+          "required": [
+            "milestone_id",
+            "completed"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_learning_paths",
+        "title": "List learning paths",
+        "description": "List learning paths visible to the signed-in user, including title, difficulty, estimated hours, target certification and step count.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Optional free-text filter on the learning path title. Empty string returns all."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximum number of paths to return (1-25). Defaults to 10."
+            }
+          },
+          "required": [
+            "query",
+            "limit"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

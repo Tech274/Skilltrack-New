@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices ADD CONSTRAINT invoices_currency_check CHECK (currency IN ('INR','USD','CAD','EUR'));

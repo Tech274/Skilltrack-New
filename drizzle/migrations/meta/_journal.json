@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790951076784,
+      "tag": "0000_invoices_currency_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790952761977,
+      "tag": "0001_sku_currency_and_fx_rates",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790953379890,
+      "tag": "0002_campaigns",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790956098112,
+      "tag": "0003_create_leads",
+      "breakpoints": true
+    }
+  ]
+}
