@@ -1,0 +1,7 @@
+# Legacy entry points. Cloudflare Pages keeps the query string on these rules.
+/login /auth 301
+/login/ /auth 301
+/signup /auth 301
+/signup/ /auth 301
+/privacy-policy /privacy 301
+/privacy-policy/ /privacy 301

@@ -102,6 +102,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `https://skilltrack.co.in/__l5e/assets-v1/f6e98f8e-a6d8-4d86-b097-a61ef1fe9943/skilltrack-og.png?v=${4}` },
     ],
     links: [
+      { rel: "preconnect", href: "https://rsms.me", crossOrigin: "anonymous" },
+      {
+        rel: "preload",
+        href: "https://rsms.me/inter/font-files/InterVariable.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      ...(import.meta.env.VITE_SUPABASE_URL
+        ? [{ rel: "preconnect" as const, href: import.meta.env.VITE_SUPABASE_URL }]
+        : []),
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: BRAND.favicon },
       { rel: "apple-touch-icon", href: BRAND.favicon },
