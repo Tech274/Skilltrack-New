@@ -24,6 +24,8 @@ export function BrandLogo({
    */
   surface = "auto",
   src,
+  loading = "eager",
+  fetchPriority,
 }: {
   className?: string;
   alt?: string;
@@ -31,33 +33,32 @@ export function BrandLogo({
   surface?: "auto" | "light" | "dark";
   /** Optional override (e.g. a tenant's uploaded logo URL). */
   src?: string;
+  /** Header logo stays eager. Pass `lazy` for below-the-fold placements. */
+  loading?: "eager" | "lazy";
+  fetchPriority?: "high" | "low" | "auto";
 }) {
   const width = Math.round(size * LOCKUP_RATIO);
+  const shared = {
+    alt,
+    width,
+    height: size,
+    loading,
+    decoding: "async" as const,
+    fetchPriority,
+  };
   if (src) {
-    return <img src={src} alt={alt} width={width} height={size} className={className} />;
+    return <img src={src} {...shared} className={className} />;
   }
   if (surface === "light") {
-    return <img src={BRAND.logoLight} alt={alt} width={width} height={size} className={className} />;
+    return <img src={BRAND.logoLight} {...shared} className={className} />;
   }
   if (surface === "dark") {
-    return <img src={BRAND.logoDark} alt={alt} width={width} height={size} className={className} />;
+    return <img src={BRAND.logoDark} {...shared} className={className} />;
   }
   return (
     <>
-      <img
-        src={BRAND.logoLight}
-        alt={alt}
-        width={width}
-        height={size}
-        className={`${className} block dark:hidden`}
-      />
-      <img
-        src={BRAND.logoDark}
-        alt={alt}
-        width={width}
-        height={size}
-        className={`${className} hidden dark:block`}
-      />
+      <img src={BRAND.logoLight} {...shared} className={`${className} block dark:hidden`} />
+      <img src={BRAND.logoDark} {...shared} className={`${className} hidden dark:block`} />
     </>
   );
 }

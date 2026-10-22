@@ -7,7 +7,7 @@
  *
  * Bump this number whenever the underlying asset bytes change.
  */
-export const BRAND_VERSION = 8;
+export const BRAND_VERSION = 9;
 
 import ogAsset from "@/assets/skilltrack-og.png.asset.json";
 
@@ -16,12 +16,12 @@ export const bust = (url: string) =>
 
 export const BRAND = {
   /**
-   * Padded 1644×498 lockups served from /public. The source master was
-   * clipped at the canvas edges (grad-hat/book icon flush at x=0), so these
-   * carry transparent margins that keep the full mark visible.
+   * WebP derivatives of the padded 1644×498 lockup (served at 822×249, about
+   * 5× the header's CSS size). The ratio is unchanged. Smaller PNGs remain at
+   * /logo.png and /logo-dark.png for anything still requesting those paths.
    */
-  logoLight: bust("/logo.png"),
-  logoDark: bust("/logo-dark.png"),
+  logoLight: bust("/logo.webp"),
+  logoDark: bust("/logo-dark.webp"),
   og: bust(ogAsset.url),
   favicon: `/favicon.png?v=${BRAND_VERSION}`,
 };

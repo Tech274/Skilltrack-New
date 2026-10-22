@@ -62,6 +62,8 @@ function SlideArt({ c, eager }: { c: Campaign; eager: boolean }) {
       <img
         src={desktop ?? mobile ?? undefined}
         alt={c.image_alt ?? ""}
+        width={1000}
+        height={800}
         loading={eager ? "eager" : "lazy"}
         fetchPriority={eager ? "high" : "auto"}
         decoding="async"

@@ -5,8 +5,16 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/")({
-  validateSearch: (s: Record<string, unknown>): { next?: string } =>
-    typeof s.next === "string" && s.next ? { next: s.next } : {},
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const search: { next?: string } = {};
+    if (typeof s.next === "string" && s.next) search.next = s.next;
+    // Keep the rest of the query string (utm and friends) across /login and /signup.
+    for (const [key, value] of Object.entries(s)) {
+      if (key === "next" || typeof value !== "string" || !value) continue;
+      (search as Record<string, string>)[key] = value;
+    }
+    return search;
+  },
 
   head: () => ({
     meta: [

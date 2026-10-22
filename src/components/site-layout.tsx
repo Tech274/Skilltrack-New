@@ -82,7 +82,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5 group" aria-label="SkillTrack-365 home">
-          <BrandLogo className="h-11 w-auto object-contain" size={44} />
+          <BrandLogo className="h-11 w-auto object-contain" size={44} fetchPriority="high" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
@@ -269,7 +269,12 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
           <div className="col-span-2">
             <div className="flex items-center gap-2.5">
-              <BrandLogo className="h-9 w-auto object-contain" size={36} />
+              <BrandLogo
+                className="h-9 w-auto object-contain"
+                size={36}
+                loading="lazy"
+                fetchPriority="low"
+              />
             </div>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               Track Skills. Predict Success. Accelerate Careers.

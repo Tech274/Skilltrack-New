@@ -23,12 +23,15 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EnterpriseRouteImport } from './routes/enterprise'
 import { Route as LabsRouteImport } from './routes/labs'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PacksRouteImport } from './routes/packs'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -162,6 +165,11 @@ const LabsRoute = LabsRouteImport.update({
   path: '/labs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketplaceRoute = MarketplaceRouteImport.update({
   id: '/marketplace',
   path: '/marketplace',
@@ -187,9 +195,19 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalaryRoute = SalaryRouteImport.update({
   id: '/salary',
   path: '/salary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -563,12 +581,15 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/labs': typeof LabsRoute
+  '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRouteWithChildren
   '/mcp': typeof McpRoute
   '/packs': typeof PacksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/salary': typeof SalaryRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -646,11 +667,14 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/labs': typeof LabsRoute
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/packs': typeof PacksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/salary': typeof SalaryRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -730,12 +754,15 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/labs': typeof LabsRoute
+  '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRouteWithChildren
   '/mcp': typeof McpRoute
   '/packs': typeof PacksRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/salary': typeof SalaryRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -816,12 +843,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/labs'
+    | '/login'
     | '/marketplace'
     | '/mcp'
     | '/packs'
     | '/pricing'
     | '/privacy'
+    | '/privacy-policy'
     | '/salary'
+    | '/signup'
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -899,11 +929,14 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/labs'
+    | '/login'
     | '/mcp'
     | '/packs'
     | '/pricing'
     | '/privacy'
+    | '/privacy-policy'
     | '/salary'
+    | '/signup'
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -982,12 +1015,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/labs'
+    | '/login'
     | '/marketplace'
     | '/mcp'
     | '/packs'
     | '/pricing'
     | '/privacy'
+    | '/privacy-policy'
     | '/salary'
+    | '/signup'
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -1068,12 +1104,15 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EnterpriseRoute: typeof EnterpriseRoute
   LabsRoute: typeof LabsRoute
+  LoginRoute: typeof LoginRoute
   MarketplaceRoute: typeof MarketplaceRouteWithChildren
   McpRoute: typeof McpRoute
   PacksRoute: typeof PacksRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   SalaryRoute: typeof SalaryRoute
+  SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1187,6 +1226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketplace': {
       id: '/marketplace'
       path: '/marketplace'
@@ -1222,11 +1268,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/salary': {
       id: '/salary'
       path: '/salary'
       fullPath: '/salary'
       preLoaderRoute: typeof SalaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1910,12 +1970,15 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EnterpriseRoute: EnterpriseRoute,
   LabsRoute: LabsRoute,
+  LoginRoute: LoginRoute,
   MarketplaceRoute: MarketplaceRouteWithChildren,
   McpRoute: McpRoute,
   PacksRoute: PacksRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   SalaryRoute: SalaryRoute,
+  SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
