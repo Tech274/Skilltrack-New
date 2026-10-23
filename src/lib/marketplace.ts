@@ -5,6 +5,7 @@ import { SALES_WHATSAPP, waLink } from "@/config/contact";
  */
 
 import { SKILLBRIDGE_BASE_URL, SKILLHUB_BASE_URL } from "@/lib/handoff";
+import { formatInvoiceAmount } from "@/lib/invoice-currency";
 
 export type PrepSkuType = "mock" | "practice" | "notes" | "labs";
 
@@ -28,9 +29,12 @@ export type PrepSkuDef = {
   features: string[];
   /** Optional fulfillment deep-link shown on the SKU detail page */
   fulfilledOn?: { label: string; href: string };
-  /** Price currency (INR default) */
+  /** Price currency stored with the SKU. Absent currency is treated as INR when a price exists. */
   currency?: string;
-  /** Optional override; leaf falls back to MARKETPLACE_PRICE_INR */
+  /**
+   * Stored prep price. Public pages show this amount only.
+   * A missing or null price is "Price on request".
+   */
   priceInr?: number;
 };
 
@@ -386,7 +390,150 @@ const CERT_PREP_SKUS: Record<MarketplaceCertKey, PrepSkuDef[]> = {
 /** Flat list of shared SKU type metadata (titles) — prefer getPrepSku for cert copy. */
 export const PREP_SKU_TYPES: PrepSkuDef[] = CERT_PREP_SKUS["aws-saa"];
 
-export const MARKETPLACE_PRICE_INR = 999;
+export const PRICE_ON_REQUEST_LABEL = "Price on request";
+
+export type ListedPrice = {
+  amount: number;
+  currency: string;
+};
+
+/**
+ * A quoted prep price stored on the SKU.
+ * Missing, null, and non-finite amounts are not listed.
+ */
+export function listedSkuPrice(sku: {
+  priceInr?: number | null;
+  currency?: string | null;
+}): ListedPrice | null {
+  if (typeof sku.priceInr !== "number" || !Number.isFinite(sku.priceInr)) return null;
+  const currency = (sku.currency || "INR").trim().toUpperCase() || "INR";
+  return { amount: sku.priceInr, currency };
+}
+
+export function formatListedPrice(price: ListedPrice | null): string {
+  if (!price) return PRICE_ON_REQUEST_LABEL;
+  return formatInvoiceAmount(price.amount, price.currency, 0);
+}
+
+export type PriceSummary =
+  { kind: "none" } | { kind: "exact"; price: ListedPrice } | { kind: "from"; price: ListedPrice };
+
+/**
+ * Summarize stored prices for a set of SKUs.
+ * `totalCount` is how many SKUs are in the set, including ones with no price.
+ * A single shared amount is "exact" only when every SKU in the set has that price.
+ */
+export function summarizeListedPrices(
+  prices: Array<ListedPrice | null>,
+  totalCount: number,
+): PriceSummary {
+  const present = prices.filter((price): price is ListedPrice => price !== null);
+  if (present.length === 0 || totalCount === 0) return { kind: "none" };
+  const currency = present[0]!.currency;
+  if (present.some((price) => price.currency !== currency)) return { kind: "none" };
+  const amounts = present.map((price) => price.amount);
+  const min = Math.min(...amounts);
+  const max = Math.max(...amounts);
+  const price = { amount: min, currency };
+  if (min === max && present.length === totalCount) return { kind: "exact", price };
+  return { kind: "from", price };
+}
+
+export function priceSummaryLabel(summary: PriceSummary): string {
+  if (summary.kind === "none") return PRICE_ON_REQUEST_LABEL;
+  const formatted = formatListedPrice(summary.price);
+  return summary.kind === "from" ? `From ${formatted}` : formatted;
+}
+
+export type PrepBundleOffer = {
+  id: string;
+  certKey: string;
+  certName: string;
+  title: string;
+  skuTypes: PrepSkuType[];
+  includes: string[];
+  /**
+   * Sum of quoted SKU prices when every included SKU has a price in the same currency.
+   * Otherwise null (shown as Price on request).
+   */
+  price: ListedPrice | null;
+};
+
+/**
+ * A bundle is the prep SKUs already listed for one certification (at least two).
+ * No bundle price is stored. The amount is the sum of quoted SKU prices only when
+ * every included SKU has a price in the same currency.
+ */
+export function prepBundleForCert(
+  certKey: string,
+  catalog: MarketplaceCatalog = STATIC_MARKETPLACE_CATALOG,
+): PrepBundleOffer | null {
+  const cert = catalog.certs.find((row) => row.key === certKey);
+  if (!cert) return null;
+  const skus = catalog.skusByCert[certKey] ?? [];
+  if (skus.length < 2) return null;
+  const prices = skus.map((sku) => listedSkuPrice(sku));
+  let price: ListedPrice | null = null;
+  if (prices.every((row): row is ListedPrice => row !== null)) {
+    const currency = prices[0]!.currency;
+    if (prices.every((row) => row.currency === currency)) {
+      price = {
+        amount: prices.reduce((sum, row) => sum + row.amount, 0),
+        currency,
+      };
+    }
+  }
+  return {
+    id: `${cert.key}-prep-bundle`,
+    certKey: cert.key,
+    certName: cert.name,
+    title: `${cert.shortName} prep bundle`,
+    skuTypes: skus.map((sku) => sku.type),
+    includes: skus.map((sku) => sku.title),
+    price,
+  };
+}
+
+export function listPrepBundles(
+  catalog: MarketplaceCatalog = STATIC_MARKETPLACE_CATALOG,
+): PrepBundleOffer[] {
+  return catalog.certs
+    .map((cert) => prepBundleForCert(cert.key, catalog))
+    .filter((bundle): bundle is PrepBundleOffer => bundle !== null);
+}
+
+export function priceSummaryForType(
+  type: string,
+  catalog: MarketplaceCatalog = STATIC_MARKETPLACE_CATALOG,
+): PriceSummary {
+  if (!isPrepSkuType(type)) return { kind: "none" };
+  const skus: PrepSkuDef[] = [];
+  for (const cert of catalog.certs) {
+    const sku = (catalog.skusByCert[cert.key] ?? []).find((row) => row.type === type);
+    if (sku) skus.push(sku);
+  }
+  return summarizeListedPrices(
+    skus.map((sku) => listedSkuPrice(sku)),
+    skus.length,
+  );
+}
+
+export function priceSummaryForTypeOem(
+  type: string,
+  oem: string,
+  catalog: MarketplaceCatalog = STATIC_MARKETPLACE_CATALOG,
+): PriceSummary {
+  const certs = listCertsForTypeOem(type, oem, catalog);
+  const skus: PrepSkuDef[] = [];
+  for (const cert of certs) {
+    const sku = (catalog.skusByCert[cert.key] ?? []).find((row) => row.type === type);
+    if (sku) skus.push(sku);
+  }
+  return summarizeListedPrices(
+    skus.map((sku) => listedSkuPrice(sku)),
+    skus.length,
+  );
+}
 
 /** Sales WhatsApp number lives in src/config/contact.ts. */
 export const MARKETPLACE_WHATSAPP_NUMBER_PLACEHOLDER = SALES_WHATSAPP;
@@ -492,9 +639,7 @@ export type MarketplaceTwoSegment =
   | { kind: "not-found" };
 
 export type MarketplaceOneSegment =
-  | { kind: "type-hub"; skuType: PrepSkuType }
-  | { kind: "redirect-index" }
-  | { kind: "not-found" };
+  { kind: "type-hub"; skuType: PrepSkuType } | { kind: "redirect-index" } | { kind: "not-found" };
 
 export const PREP_SKU_TYPE_KEYS: readonly PrepSkuType[] = ["mock", "practice", "notes", "labs"];
 

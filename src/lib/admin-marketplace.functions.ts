@@ -12,7 +12,6 @@ import {
   CERT_TO_OEM,
   MARKETPLACE_CERTS,
   MARKETPLACE_OEMS,
-  MARKETPLACE_PRICE_INR,
   PREP_SKU_TYPE_KEYS,
   listPrepSkus,
   marketplaceOemLogoPath,
@@ -164,7 +163,7 @@ const skuInput = z.object({
   blurb: z.string().max(2000).optional().nullable(),
   includes: z.array(z.string()).optional(),
   features: z.array(z.string()).optional(),
-  price_inr: z.number().min(0).max(1000000).default(MARKETPLACE_PRICE_INR),
+  price_inr: z.union([z.number().min(0).max(1000000), z.null(), z.literal("")]),
   currency: z.enum(["INR", "USD", "CAD", "EUR"]).default("INR"),
   active: z.boolean().default(true),
   mock_exam_id: z.string().uuid().optional().nullable(),
@@ -191,6 +190,7 @@ export const upsertMarketplaceSku = createServerFn({ method: "POST" })
     ]) {
       if (payload[k] === "") payload[k] = null;
     }
+    if (payload.price_inr === "") payload.price_inr = null;
     const { id, ...rest } = payload;
     if (id) {
       const { error } = await supabaseAdmin.from("marketplace_skus").update(rest).eq("id", id);
@@ -278,6 +278,12 @@ export const seedMarketplaceCatalog = createServerFn({ method: "POST" })
       const cert_id = certIdByKey.get(cert.key);
       if (!cert_id) continue;
       for (const sku of listPrepSkus(cert.key)) {
+        // Omit price_inr when the static SKU has no quote. Inserts store NULL, and
+        // a conflict update leaves the stored amount alone.
+        const quoted =
+          typeof sku.priceInr === "number" && Number.isFinite(sku.priceInr)
+            ? sku.priceInr
+            : undefined;
         const { error } = await supabaseAdmin.from("marketplace_skus").upsert(
           {
             cert_id,
@@ -286,7 +292,7 @@ export const seedMarketplaceCatalog = createServerFn({ method: "POST" })
             blurb: sku.blurb,
             includes: sku.includes,
             features: sku.features,
-            price_inr: sku.priceInr ?? MARKETPLACE_PRICE_INR,
+            ...(quoted === undefined ? {} : { price_inr: quoted }),
             active: true,
             fulfilled_on_label: sku.fulfilledOn?.label ?? null,
             fulfilled_on_href: sku.fulfilledOn?.href ?? null,

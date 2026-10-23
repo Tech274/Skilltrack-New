@@ -1,15 +1,16 @@
 import { hasSalesWhatsApp } from "@/config/contact";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { formatInvoiceAmount } from "@/lib/invoice-currency";
 import { ArrowRight, Check, ExternalLink, MessageCircle } from "lucide-react";
 import {
+  formatListedPrice,
   getMarketplaceOem,
   getPrepSkuFromCatalog,
   getPrepSkuTypeHub,
   listCertsForTypeOem,
-  MARKETPLACE_PRICE_INR,
+  listedSkuPrice,
   marketplaceOemLogoPath,
   marketplaceWhatsAppUrl,
+  prepBundleForCert,
   resolveMarketplaceTwoSegment,
   type MarketplaceCatalog,
   type MarketplaceCert,
@@ -74,12 +75,13 @@ export const Route = createFileRoute("/marketplace/$cert/$type")({
     if (!d) return {};
     if (d.kind === "sku") {
       const title = `${d.sku.title} — ${d.cert.shortName} | SkillTrack Marketplace`;
+      const priceLabel = formatListedPrice(listedSkuPrice(d.sku));
       return {
         meta: [
           { title },
           {
             name: "description",
-            content: `${d.sku.blurb} Placeholder price ${formatInvoiceAmount(d.sku.priceInr ?? MARKETPLACE_PRICE_INR, d.sku.currency, 0)}. Book a call — no online checkout yet.`,
+            content: `${d.sku.blurb} ${priceLabel}. Book a call — no online checkout yet.`,
           },
           { property: "og:title", content: title },
           { property: "og:description", content: d.sku.blurb },
@@ -133,7 +135,7 @@ function MarketplaceTwoSegmentPage() {
   return <MarketplaceOemCertListPage {...data} />;
 }
 
-function MarketplaceOemCertListPage({ oem, typeHub, certs }: OemCertsData) {
+function MarketplaceOemCertListPage({ oem, typeHub, certs, catalog }: OemCertsData) {
   return (
     <div className="relative">
       <div className="absolute inset-x-0 top-0 h-[320px] bg-mesh" />
@@ -176,25 +178,32 @@ function MarketplaceOemCertListPage({ oem, typeHub, certs }: OemCertsData) {
             Certifications
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {certs.map((cert) => (
-              <Link
-                key={cert.key}
-                to="/marketplace/$cert/$type"
-                params={{ cert: cert.key, type: typeHub.type }}
-                className="group flex flex-col rounded-xl border border-border bg-surface p-6 shadow-card transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
-              >
-                <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                  {cert.code || "Cert"}
-                </div>
-                <h2 className="mt-3 text-lg font-semibold tracking-tight group-hover:text-primary">
-                  {cert.name}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">{cert.shortName}</p>
-                <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
-                  View {typeHub.label} <ArrowRight size={14} />
-                </div>
-              </Link>
-            ))}
+            {certs.map((cert) => {
+              const sku = getPrepSkuFromCatalog(cert.key, typeHub.type, catalog);
+              const priceLabel = formatListedPrice(sku ? listedSkuPrice(sku.sku) : null);
+              return (
+                <Link
+                  key={cert.key}
+                  to="/marketplace/$cert/$type"
+                  params={{ cert: cert.key, type: typeHub.type }}
+                  className="group flex flex-col rounded-xl border border-border bg-surface p-6 shadow-card transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
+                >
+                  <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {cert.code || "Cert"}
+                  </div>
+                  <h2 className="mt-3 text-lg font-semibold tracking-tight group-hover:text-primary">
+                    {cert.name}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{cert.shortName}</p>
+                  <p className="mt-3 font-mono text-sm font-semibold text-foreground">
+                    {priceLabel}
+                  </p>
+                  <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                    View {typeHub.label} <ArrowRight size={14} />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       </div>
@@ -202,9 +211,10 @@ function MarketplaceOemCertListPage({ oem, typeHub, certs }: OemCertsData) {
   );
 }
 
-function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
+function MarketplaceSkuPage({ cert, sku, oem, typeHub, catalog }: SkuData) {
   const handoff = useHandoffContext();
-  const price = sku.priceInr ?? MARKETPLACE_PRICE_INR;
+  const priceLabel = formatListedPrice(listedSkuPrice(sku));
+  const bundle = prepBundleForCert(cert.key, catalog);
 
   return (
     <div className="relative">
@@ -253,21 +263,21 @@ function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/book-a-call"
-                search={{ utm_campaign: "marketplace", cert: cert.code, type: sku.type } as any}
+                search={{ utm_campaign: "marketplace", cert: cert.code }}
                 className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-card"
               >
                 Talk to us to enrol <ArrowRight size={16} />
               </Link>
               {hasSalesWhatsApp && (
-              <a
-                href={marketplaceWhatsAppUrl(cert)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-elevated"
-              >
-                <MessageCircle size={16} />
-                WhatsApp
-              </a>
+                <a
+                  href={marketplaceWhatsAppUrl(cert)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-elevated"
+                >
+                  <MessageCircle size={16} />
+                  WhatsApp
+                </a>
               )}
             </div>
             {sku.fulfilledOn && (
@@ -293,10 +303,7 @@ function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
             <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
               Price
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-mono text-3xl font-semibold">{formatInvoiceAmount(price, sku.currency, 0)}</span>
-              <span className="text-sm text-muted-foreground">placeholder</span>
-            </div>
+            <div className="mt-3 font-mono text-3xl font-semibold">{priceLabel}</div>
             <p className="mt-3 text-xs text-muted-foreground">
               No Razorpay / Stripe on these SKUs yet. Scope and quote happen on the diagnostic call.
             </p>
@@ -317,6 +324,34 @@ function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
             ) : null}
           </div>
         </div>
+
+        {bundle ? (
+          <section className="mt-16 rounded-xl border border-border bg-surface p-6 shadow-card">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Bundle
+            </div>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">{bundle.title}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Every prep type already listed for {bundle.certName}.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {bundle.skuTypes.map((type, index) => (
+                <li key={type}>
+                  <Link
+                    to="/marketplace/$cert/$type"
+                    params={{ cert: cert.key, type }}
+                    className="text-accent hover:underline"
+                  >
+                    {bundle.includes[index]}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-5 font-mono text-lg font-semibold">
+              {formatListedPrice(bundle.price)}
+            </div>
+          </section>
+        ) : null}
 
         <div className="mt-16 grid gap-6 md:grid-cols-2">
           <section className="rounded-xl border border-border bg-surface p-6 shadow-card">

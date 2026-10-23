@@ -1,7 +1,9 @@
 import { SALES_WHATSAPP } from "@/config/contact";
 import { describe, expect, it } from "vitest";
 import {
+  buildStaticMarketplaceCatalog,
   CERT_TO_OEM,
+  formatListedPrice,
   getMarketplaceCert,
   getMarketplaceCertByCatalogSlug,
   getMarketplaceOem,
@@ -9,14 +11,19 @@ import {
   getPrepSkuTypeHub,
   listCertsForTypeOem,
   listOemsForType,
+  listPrepBundles,
   listPrepSkus,
   listPrepSkuTypeHubs,
+  listedSkuPrice,
   marketplaceOemLogoPath,
   MARKETPLACE_CERTS,
   MARKETPLACE_OEM_KEYS,
   MARKETPLACE_WHATSAPP_NUMBER_PLACEHOLDER,
   marketplaceWhatsAppUrl,
   oemKeyForCert,
+  prepBundleForCert,
+  priceSummaryForType,
+  priceSummaryLabel,
   resolveMarketplaceOneSegment,
   resolveMarketplaceTwoSegment,
 } from "./marketplace";
@@ -248,8 +255,164 @@ describe("marketplace catalog from DB rows", () => {
     expect(mapped?.oemByCertKey["aws-saa"]).toBe("aws");
   });
 
+  it("maps a null price_inr to a missing price, not zero", async () => {
+    const { catalogFromDbRows } = await import("./marketplace-catalog");
+    const mapped = catalogFromDbRows(
+      [
+        {
+          id: "o1",
+          key: "aws",
+          name: "Amazon Web Services",
+          short_name: "AWS",
+          logo_path: "/logos/oem/aws.svg",
+          sort_order: 1,
+          active: true,
+        },
+      ],
+      [
+        {
+          id: "c1",
+          oem_id: "o1",
+          key: "aws-saa",
+          catalog_slug: "aws-solutions-architect-associate",
+          catalog_id: null,
+          code: "SAA-C03",
+          name: "AWS Solutions Architect — Associate",
+          short_name: "AWS SAA",
+          sort_order: 1,
+          active: true,
+        },
+      ],
+      [
+        {
+          id: "s-null",
+          cert_id: "c1",
+          sku_type: "notes",
+          title: "Notes",
+          blurb: "",
+          includes: [],
+          features: [],
+          price_inr: null,
+          active: true,
+          mock_exam_id: null,
+          study_resource_id: null,
+          question_bank_id: null,
+          fulfilled_on_label: null,
+          fulfilled_on_href: null,
+        },
+      ],
+    );
+    expect(mapped?.skusByCert["aws-saa"]?.[0]?.priceInr).toBeUndefined();
+    expect(listedSkuPrice({ priceInr: null, currency: "INR" })).toBeNull();
+    expect(formatListedPrice(listedSkuPrice({ priceInr: null }))).toBe("Price on request");
+  });
+
   it("returns null when no active OEMs so callers fall back to static", async () => {
     const { catalogFromDbRows } = await import("./marketplace-catalog");
     expect(catalogFromDbRows([], [], [])).toBeNull();
+  });
+});
+
+describe("marketplace prices and bundles", () => {
+  it("does not invent a price when the static catalogue has none", () => {
+    for (const key of EXPECTED_KEYS) {
+      for (const sku of listPrepSkus(key)) {
+        expect(sku.priceInr).toBeUndefined();
+        expect(listedSkuPrice(sku)).toBeNull();
+      }
+    }
+    expect(priceSummaryLabel(priceSummaryForType("mock"))).toBe("Price on request");
+    expect(formatListedPrice(null)).toBe("Price on request");
+
+    const bundles = listPrepBundles();
+    expect(bundles.map((bundle) => bundle.certKey)).toEqual([...EXPECTED_KEYS]);
+    for (const bundle of bundles) {
+      expect(bundle.includes).toEqual([
+        "Mocks",
+        "Practice question bank",
+        "Notes / blueprint",
+        "Labs",
+      ]);
+      expect(bundle.price).toBeNull();
+    }
+  });
+
+  it("sums a bundle only when every included SKU has a stored price in one currency", () => {
+    const catalog = buildStaticMarketplaceCatalog();
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: 100,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 400, currency: "INR" });
+
+    for (const key of ["az-104", "gcp-ace", "salesforce-admin"] as const) {
+      catalog.skusByCert[key] = catalog.skusByCert[key]!.map((sku) => ({
+        ...sku,
+        priceInr: sku.type === "mock" ? 100 : undefined,
+        currency: "INR",
+      }));
+    }
+    const exact = formatListedPrice({ amount: 100, currency: "INR" });
+    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe(exact);
+
+    catalog.skusByCert["az-104"] = catalog.skusByCert["az-104"]!.map((sku) =>
+      sku.type === "mock" ? { ...sku, priceInr: 250 } : sku,
+    );
+    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe(`From ${exact}`);
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) =>
+      index === 0 ? { ...sku, currency: "USD" } : sku,
+    );
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
+      ...sku,
+      currency: "INR",
+      priceInr: index === 1 ? undefined : sku.priceInr,
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+  });
+
+  it("lists a numeric price, including 999, and treats only a missing price as Price on request", () => {
+    expect(listedSkuPrice({ priceInr: 999, currency: "INR" })).toEqual({
+      amount: 999,
+      currency: "INR",
+    });
+    expect(listedSkuPrice({ priceInr: null, currency: "INR" })).toBeNull();
+    expect(listedSkuPrice({ priceInr: undefined })).toBeNull();
+    expect(formatListedPrice(null)).toBe("Price on request");
+    expect(listedSkuPrice({ priceInr: 1299, currency: "INR" })).toEqual({
+      amount: 1299,
+      currency: "INR",
+    });
+
+    const catalog = buildStaticMarketplaceCatalog();
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: 999,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 3996, currency: "INR" });
+    expect(formatListedPrice(prepBundleForCert("aws-saa", catalog)?.price ?? null)).toBe(
+      formatListedPrice({ amount: 3996, currency: "INR" }),
+    );
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
+      ...sku,
+      priceInr: index === 0 ? undefined : 400,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+    expect(formatListedPrice(prepBundleForCert("aws-saa", catalog)?.price ?? null)).toBe(
+      "Price on request",
+    );
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: 400,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 1600, currency: "INR" });
   });
 });
