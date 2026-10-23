@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { CalendarCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { MessagingConsentField } from "@/components/messaging-consent";
 import {
   examDateFieldErrors,
   examDateLeadInput,
@@ -26,6 +26,7 @@ export function ExamDateLeadForm({ certification }: { certification?: ExamDateCe
   const emailId = `${baseId}-email`;
   const dateId = `${baseId}-date`;
   const statusId = `${baseId}-status`;
+  const consentId = `${baseId}-consent`;
   const successRef = useRef<HTMLHeadingElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
@@ -41,8 +42,10 @@ export function ExamDateLeadForm({ certification }: { certification?: ExamDateCe
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
+  const [messagingConsent, setMessagingConsent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [consentError, setConsentError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,16 +65,17 @@ export function ExamDateLeadForm({ certification }: { certification?: ExamDateCe
 
   const statusText = submitted
     ? ""
-    : [emailError, dateError, formError].filter(Boolean).join(" ") ||
+    : [emailError, dateError, consentError, formError].filter(Boolean).join(" ") ||
       (submitting ? "Saving your exam date." : "");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!mounted || lock.current || submitted) return;
 
-    const errors = examDateFieldErrors(email, examDate, examFormToday());
+    const errors = examDateFieldErrors(email, examDate, examFormToday(), messagingConsent);
     setEmailError(errors.email);
     setDateError(errors.date);
+    setConsentError(errors.consent);
     setFormError(null);
     if (errors.email) {
       emailRef.current?.focus();
@@ -79,6 +83,10 @@ export function ExamDateLeadForm({ certification }: { certification?: ExamDateCe
     }
     if (errors.date) {
       dateRef.current?.focus();
+      return;
+    }
+    if (errors.consent) {
+      document.getElementById(consentId)?.focus();
       return;
     }
 
@@ -247,21 +255,18 @@ export function ExamDateLeadForm({ certification }: { certification?: ExamDateCe
               {statusText}
             </p>
 
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              By submitting, you agree we can contact you at this email about your exam date. See
-              our{" "}
-              <Link
-                to="/privacy"
-                className="font-medium text-foreground underline underline-offset-2 hover:text-accent"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </p>
+            <MessagingConsentField
+              id={consentId}
+              checked={messagingConsent}
+              onChange={(checked) => {
+                setMessagingConsent(checked);
+                if (checked) setConsentError(null);
+              }}
+            />
 
             <button
               type="submit"
-              disabled={!mounted || submitting}
+              disabled={!mounted || submitting || !messagingConsent}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gradient-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition-transform hover:scale-[1.01] disabled:opacity-60"
             >
               {submitting ? (

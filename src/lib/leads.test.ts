@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildLeadInsertRow,
   certificationInterest,
   examDateFieldErrors,
   examDateLeadInput,
@@ -14,7 +15,7 @@ import {
 
 const TODAY = "2026-10-23";
 
-function examPayload(overrides: Record<string, string> = {}) {
+function examPayload(overrides: Record<string, unknown> = {}) {
   return {
     source: "exam_date",
     email: "priya@example.com",
@@ -22,6 +23,7 @@ function examPayload(overrides: Record<string, string> = {}) {
     submission_id: "submit-1234",
     page_path: "/certifications/cissp",
     certs: "CISSP (cissp)",
+    messaging_consent: true,
     ...overrides,
   };
 }
@@ -47,14 +49,16 @@ describe("exam date validation", () => {
     expect(nextIsoDate(TODAY)).toBe("2026-10-24");
   });
 
-  it("checks email and exam date separately for the form", () => {
-    expect(examDateFieldErrors("not-an-email", "2026-10-22", TODAY)).toEqual({
+  it("checks email, exam date, and consent separately for the form", () => {
+    expect(examDateFieldErrors("not-an-email", "2026-10-22", TODAY, false)).toEqual({
       email: "Please enter a valid email",
       date: "Exam date must be in the future.",
+      consent: "Please agree to be contacted before submitting.",
     });
-    expect(examDateFieldErrors("  priya@example.com ", "2026-12-01", TODAY)).toEqual({
+    expect(examDateFieldErrors("  priya@example.com ", "2026-12-01", TODAY, true)).toEqual({
       email: null,
       date: null,
+      consent: null,
     });
   });
 });
@@ -75,6 +79,15 @@ describe("parseLead", () => {
     expect(parseLead(examPayload({ target_exam_date: "" }), TODAY).success).toBe(false);
     expect(parseLead(examPayload({ target_exam_date: TODAY }), TODAY).success).toBe(false);
     expect(parseLead(examPayload({ target_exam_date: "2020-01-01" }), TODAY).success).toBe(false);
+  });
+
+  it("rejects an exam-date lead until messaging consent is ticked", () => {
+    const parsed = parseLead(examPayload({ messaging_consent: false }), TODAY);
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    expect(parsed.error.issues.map((issue) => issue.message)).toContain(
+      "Please agree to be contacted before submitting.",
+    );
   });
 
   it("rejects an invalid email", () => {
@@ -116,6 +129,43 @@ describe("parseLead", () => {
     expect(input.source).toBe("exam_date");
     expect(certificationInterest(null)).toBe("");
     expect(certificationInterest({ slug: "cissp", name: "" })).toBe("cissp (cissp)");
+    expect(input.messaging_consent).toBe(true);
+  });
+
+  it("omits target_exam_date until that column exists", () => {
+    const parsed = parseLead(examPayload(), TODAY);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    const withColumn = buildLeadInsertRow(parsed.data, null, {
+      hasTargetExamDateColumn: true,
+      consentAt: "2026-10-23T12:00:00.000Z",
+    });
+    expect(withColumn.source).toBe("exam_date");
+    expect(withColumn.target_exam_date).toBe("2026-11-02");
+    expect(withColumn.notes).toContain("messaging_consent=true");
+
+    const withoutColumn = buildLeadInsertRow(parsed.data, null, {
+      hasTargetExamDateColumn: false,
+      consentAt: "2026-10-23T12:00:00.000Z",
+    });
+    expect(withoutColumn.source).toBe("other");
+    expect(withoutColumn).not.toHaveProperty("target_exam_date");
+    expect(withoutColumn.timing).toBe("2026-11-02");
+    expect(withoutColumn.notes).toContain("[exam_date] target_exam_date=2026-11-02");
+    expect(withoutColumn.notes).toContain("[dpdp] messaging_consent=true");
+
+    const booked = buildLeadInsertRow(
+      {
+        ...parsed.data,
+        source: "book_a_call",
+        name: "Priya",
+        phone: "999",
+      },
+      null,
+      { hasTargetExamDateColumn: false },
+    );
+    expect(booked.source).toBe("book_a_call");
+    expect(booked).not.toHaveProperty("target_exam_date");
   });
 });
 
@@ -162,23 +212,19 @@ describe("submitLead", () => {
 });
 
 describe("exam date lead migration", () => {
-  const sql = readFileSync("drizzle/migrations/0004_lead_exam_date.sql", "utf8");
+  const sql = readFileSync("drizzle/migrations/20261023193000_lead_target_exam_date.sql", "utf8");
 
-  it("adds the exam date column and the exam_date source", () => {
+  it("adds a nullable exam date column and the exam_date source", () => {
     expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS target_exam_date date/i);
+    expect(sql).not.toMatch(/target_exam_date date\s+NOT NULL/i);
     expect(sql).toContain("'exam_date'");
+    expect(sql).not.toMatch(/0004_lead_exam_date/);
   });
 
-  it("lets the anonymous role insert and does not let it read", () => {
-    expect(sql).toMatch(/REVOKE ALL ON TABLE public\.leads FROM anon/i);
-    expect(sql).toMatch(
-      /GRANT INSERT \([\s\S]*target_exam_date[\s\S]*\) ON TABLE public\.leads TO anon/i,
-    );
-    expect(sql).not.toMatch(/GRANT SELECT[\s\S]{0,80}TO anon/i);
-    expect(sql).toMatch(/FOR INSERT\s+TO anon/i);
-    expect(sql).not.toMatch(/FOR SELECT[\s\S]{0,40}TO anon/i);
-    expect(sql).toMatch(
-      /target_exam_date > \(CURRENT_TIMESTAMP AT TIME ZONE 'Asia\/Kolkata'\)::date/,
-    );
+  it("does not grant anonymous inserts", () => {
+    expect(sql).not.toMatch(/GRANT INSERT/i);
+    expect(sql).not.toMatch(/TO anon/i);
+    expect(sql).not.toMatch(/CREATE POLICY/i);
+    expect(sql).not.toMatch(/FOR INSERT/i);
   });
 });

@@ -83,18 +83,57 @@ export function certificationInterest(cert?: { slug: string; name: string } | nu
   return `${name} (${slug})`.slice(0, 200);
 }
 
+export const CONSENT_REQUIRED_MESSAGE = "Please agree to be contacted before submitting.";
+
 export function examDateFieldErrors(
   email: string,
   targetExamDate: string,
   today: string,
-): { email: string | null; date: string | null } {
+  messagingConsent: boolean,
+): { email: string | null; date: string | null; consent: string | null } {
   const parsedEmail = emailField.safeParse(email);
   return {
     email: parsedEmail.success
       ? null
       : (parsedEmail.error.issues[0]?.message ?? "Please enter a valid email"),
     date: validateExamDate(targetExamDate, today),
+    consent: messagingConsent ? null : CONSENT_REQUIRED_MESSAGE,
   };
+}
+
+const CONSENT_PREFIX = "[dpdp] messaging_consent=true consent_at=";
+const EXAM_DATE_PREFIX = "[exam_date] target_exam_date=";
+
+/** Keep a consent record inside notes when the dedicated columns are not migrated yet. */
+export function notesWithConsent(notes: string | null | undefined, consentAt: string): string {
+  const marker = `${CONSENT_PREFIX}${consentAt}`;
+  const base = (notes ?? "").trim();
+  if (base.includes(CONSENT_PREFIX)) return base.slice(0, 1000);
+  const room = 1000 - marker.length - (base ? 1 : 0);
+  const clipped = base.slice(0, Math.max(0, room)).trimEnd();
+  return (clipped ? `${clipped}\n${marker}` : marker).slice(0, 1000);
+}
+
+/** Keep the exam date in notes when `target_exam_date` is not in the database yet. */
+export function notesWithExamDate(notes: string | null | undefined, examDate: string): string {
+  const marker = `${EXAM_DATE_PREFIX}${examDate}`;
+  const base = (notes ?? "").trim();
+  if (base.includes(EXAM_DATE_PREFIX)) return base.slice(0, 1000);
+  const room = 1000 - marker.length - (base ? 1 : 0);
+  const clipped = base.slice(0, Math.max(0, room)).trimEnd();
+  return (clipped ? `${clipped}\n${marker}` : marker).slice(0, 1000);
+}
+
+export function isMissingLeadColumn(
+  error: { code?: string; message?: string } | null | undefined,
+  column: string,
+): boolean {
+  if (!error) return false;
+  const message = error.message ?? "";
+  if (!message.includes(column)) return false;
+  return (
+    error.code === "42703" || error.code === "PGRST204" || /column|schema cache/i.test(message)
+  );
 }
 
 export function buildLeadSchema(today: string) {
@@ -115,6 +154,7 @@ export function buildLeadSchema(today: string) {
       source: z.enum(LEAD_SOURCES, { message: "Invalid lead source" }),
       company_website: z.string().max(200).optional().default(""),
       target_exam_date: z.string().trim().max(10).optional().default(""),
+      messaging_consent: z.boolean().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.source !== "exam_date") {
@@ -133,6 +173,13 @@ export function buildLeadSchema(today: string) {
       const dateError = validateExamDate(data.target_exam_date, today);
       if (dateError) {
         ctx.addIssue({ code: "custom", message: dateError, path: ["target_exam_date"] });
+      }
+      if (data.messaging_consent !== true) {
+        ctx.addIssue({
+          code: "custom",
+          message: CONSENT_REQUIRED_MESSAGE,
+          path: ["messaging_consent"],
+        });
       }
     });
 }
@@ -180,7 +227,82 @@ export function examDateLeadInput(draft: ExamDateLeadDraft): LeadInput {
     submission_id: draft.submissionId,
     company_website: draft.companyWebsite,
     target_exam_date: draft.targetExamDate,
+    messaging_consent: true,
   };
+}
+
+export type LeadInsertRow = {
+  source: string;
+  name: string;
+  email: string;
+  phone: string;
+  certs: string | null;
+  timing: string | null;
+  hear_about: string | null;
+  notes: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  page_path: string | null;
+  submission_id: string;
+  ip_hash: string | null;
+  target_exam_date?: string;
+};
+
+const emptyToNull = (value: string) => (value ? value : null);
+
+/**
+ * Row for the service-role insert. `target_exam_date` is included only when that
+ * column already exists. Otherwise the date is kept in timing and notes, and the
+ * source stays one the current check constraint allows.
+ */
+export function buildLeadInsertRow(
+  data: {
+    source: string;
+    name: string;
+    email: string;
+    phone: string;
+    certs: string;
+    timing: string;
+    hear_about: string;
+    notes: string;
+    utm_source: string;
+    utm_medium: string;
+    utm_campaign: string;
+    page_path: string;
+    submission_id: string;
+    target_exam_date: string;
+  },
+  ipHash: string | null,
+  options: { hasTargetExamDateColumn: boolean; consentAt?: string },
+): LeadInsertRow {
+  const consentAt = options.consentAt ?? new Date().toISOString();
+  const notes = data.source === "exam_date" ? notesWithConsent(data.notes, consentAt) : data.notes;
+  const row: LeadInsertRow = {
+    source: data.source,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    certs: emptyToNull(data.certs),
+    timing: emptyToNull(data.timing),
+    hear_about: emptyToNull(data.hear_about),
+    notes: emptyToNull(notes),
+    utm_source: emptyToNull(data.utm_source),
+    utm_medium: emptyToNull(data.utm_medium),
+    utm_campaign: emptyToNull(data.utm_campaign),
+    page_path: emptyToNull(data.page_path),
+    submission_id: data.submission_id,
+    ip_hash: ipHash,
+  };
+  if (data.source !== "exam_date") return row;
+  if (options.hasTargetExamDateColumn) {
+    row.target_exam_date = data.target_exam_date;
+    return row;
+  }
+  row.source = "other";
+  row.timing = data.target_exam_date;
+  row.notes = notesWithExamDate(notes, data.target_exam_date);
+  return row;
 }
 
 /** Posts a lead as JSON. Never throws; success only on a confirmed insert id. */

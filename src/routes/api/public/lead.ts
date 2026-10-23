@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
-import { parseLead } from "@/lib/leads";
+import { buildLeadInsertRow, isMissingLeadColumn, parseLead } from "@/lib/leads";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -38,11 +38,10 @@ type LeadRow = {
   page_path: string | null;
   submission_id: string;
   ip_hash: string | null;
-  target_exam_date: string | null;
 };
 
 /** Mirror a saved lead to the Sales Sheet. Never throws; result only updates the row. */
-async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
+async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow, targetExamDate: string) {
   let sheetError: string | null = null;
   try {
     const url = process.env["SHEET_EXEC_URL"];
@@ -66,7 +65,7 @@ async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
       utm_campaign: row.utm_campaign ?? "",
       page_path: row.page_path ?? "",
       submission_id: row.submission_id,
-      target_exam_date: row.target_exam_date ?? "",
+      target_exam_date: targetExamDate,
       Status: "New",
       token,
     });
@@ -97,7 +96,24 @@ async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
   if (sheetError) console.error("[lead] sheet sync failed", sheetError);
 }
 
-const nz = (s: string) => (s ? s : null);
+let targetExamDateColumnExists: boolean | null = null;
+
+async function hasTargetExamDateColumn(supabaseAdmin: {
+  from(table: "leads"): {
+    select(columns: string): {
+      limit(count: number): PromiseLike<{ error: { code?: string; message?: string } | null }>;
+    };
+  };
+}): Promise<boolean> {
+  if (targetExamDateColumnExists === true) return true;
+  const { error } = await supabaseAdmin.from("leads").select("target_exam_date").limit(1);
+  if (!error) {
+    targetExamDateColumnExists = true;
+    return true;
+  }
+  if (isMissingLeadColumn(error, "target_exam_date")) return false;
+  throw error;
+}
 
 export const Route = createFileRoute("/api/public/lead")({
   server: {
@@ -152,23 +168,11 @@ export const Route = createFileRoute("/api/public/lead")({
             }
           }
 
-          const row: LeadRow = {
-            source: d.source,
-            name: d.name,
-            email: d.email,
-            phone: d.phone,
-            certs: nz(d.certs),
-            timing: nz(d.timing),
-            hear_about: nz(d.hear_about),
-            notes: nz(d.notes),
-            utm_source: nz(d.utm_source),
-            utm_medium: nz(d.utm_medium),
-            utm_campaign: nz(d.utm_campaign),
-            page_path: nz(d.page_path),
-            submission_id: d.submission_id,
-            ip_hash: ipHash,
-            target_exam_date: d.source === "exam_date" ? d.target_exam_date : null,
-          };
+          const hasExamDateColumn =
+            d.source === "exam_date" ? await hasTargetExamDateColumn(supabaseAdmin) : false;
+          const row = buildLeadInsertRow(d, ipHash, {
+            hasTargetExamDateColumn: hasExamDateColumn,
+          });
 
           const { data: inserted, error: insertError } = await supabaseAdmin
             .from("leads")
@@ -192,7 +196,12 @@ export const Route = createFileRoute("/api/public/lead")({
             );
           }
 
-          await syncToSheet(supabaseAdmin, inserted.id, row);
+          await syncToSheet(
+            supabaseAdmin,
+            inserted.id,
+            row,
+            d.source === "exam_date" ? d.target_exam_date : "",
+          );
           return json({ ok: true, id: inserted.id });
         } catch (error) {
           console.error("[lead] save failed", error);
