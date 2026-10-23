@@ -10,9 +10,9 @@ export const Route = createFileRoute("/enterprise")({
         content:
           "Manage certifications, compliance, skill gaps, and renewals for your entire workforce. Executive dashboards, L&D tooling, and SSO.",
       },
-      { property: "og:url", content: "/enterprise" },
+      { property: "og:url", content: "https://skilltrack.co.in/enterprise" },
     ],
-    links: [{ rel: "canonical", href: "/enterprise" }],
+    links: [{ rel: "canonical", href: "https://skilltrack.co.in/enterprise" }],
   }),
   component: EnterprisePage,
 });

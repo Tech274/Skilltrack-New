@@ -157,7 +157,7 @@ function MarketplaceOemCertListPage({ oem, typeHub, certs }: OemCertsData) {
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <img
             src={marketplaceOemLogoPath(oem.key)}
-            alt=""
+            alt={`${oem.name} logo`}
             className="h-10 w-auto max-w-[160px] object-contain"
           />
           <div>

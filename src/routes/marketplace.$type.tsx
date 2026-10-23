@@ -106,7 +106,7 @@ function OemCard({ oem, hub }: { oem: MarketplaceOem; hub: PrepSkuTypeHub }) {
       <div className="mt-4 flex h-14 items-center">
         <img
           src={marketplaceOemLogoPath(oem.key)}
-          alt=""
+          alt={`${oem.name} logo`}
           className="h-10 w-auto max-w-[160px] object-contain"
         />
       </div>

@@ -1,6 +1,30 @@
 export const X_FRAME_OPTIONS = "DENY";
 
 /**
+ * Document feature policy. Camera, microphone, geolocation, and USB are unused.
+ * `payment` stays open for this origin and Stripe Embedded Checkout.
+ * Browsers ignore a Permissions-Policy meta tag, so this is sent as a response
+ * header (and mirrored in public/_headers for the static host).
+ */
+export const PERMISSIONS_POLICY = [
+  "accelerometer=()",
+  "autoplay=(self)",
+  "camera=()",
+  "display-capture=()",
+  "encrypted-media=(self)",
+  "fullscreen=(self)",
+  "geolocation=()",
+  "gyroscope=()",
+  "magnetometer=()",
+  "microphone=()",
+  "midi=()",
+  'payment=(self "https://js.stripe.com" "https://checkout.stripe.com")',
+  "publickey-credentials-get=(self)",
+  "usb=()",
+  "interest-cohort=()",
+].join(", ");
+
+/**
  * Document policy for this app.
  *
  * Browser origins: Supabase (`https://*.supabase.co`, `wss://*.supabase.co`),
@@ -39,6 +63,7 @@ export function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set("X-Frame-Options", X_FRAME_OPTIONS);
   headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  headers.set("Permissions-Policy", PERMISSIONS_POLICY);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

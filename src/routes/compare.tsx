@@ -25,9 +25,9 @@ export const Route = createFileRoute("/compare")({
         content:
           "Compare professional certifications side-by-side: cost, difficulty, salary, demand, and ROI. Auto-highlight the best fit for your goal.",
       },
-      { property: "og:url", content: "/compare" },
+      { property: "og:url", content: "https://skilltrack.co.in/compare" },
     ],
-    links: [{ rel: "canonical", href: "/compare" }],
+    links: [{ rel: "canonical", href: "https://skilltrack.co.in/compare" }],
   }),
   component: ComparePage,
 });

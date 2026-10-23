@@ -61,7 +61,7 @@ function SlideArt({ c, eager }: { c: Campaign; eager: boolean }) {
       {mobile && <source media="(max-width: 767px)" srcSet={mobile} />}
       <img
         src={desktop ?? mobile ?? undefined}
-        alt={c.image_alt ?? ""}
+        alt={c.image_alt?.trim() || c.headline || c.title}
         width={1000}
         height={800}
         loading={eager ? "eager" : "lazy"}
