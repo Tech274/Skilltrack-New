@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AiFillButton } from "@/components/ai/ai-fill-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/mock-exams")({
   head: () => ({ meta: [{ title: "Mock Exams — Admin — SkillTrack-365" }] }),
@@ -39,13 +40,15 @@ function ExamsPage() {
 
   const [status, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<any | null>(null);
   const [openEditor, setOpenEditor] = useState(false);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["admin", "exams", status, search],
-    queryFn: () => list({ data: { status, search } }),
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "exams", status, search, page],
+    queryFn: () => list({ data: { status, search, page, pageSize: 50 } }),
   });
+  const rows = data?.rows ?? [];
 
   const upsertMut = useMutation({
     mutationFn: (payload: any) => upsert({ data: payload }),
@@ -82,9 +85,9 @@ function ExamsPage() {
       <div className="mt-6 flex flex-wrap gap-2">
         <div className="relative">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-8 w-64" placeholder="Search title or certification…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-8 w-64" placeholder="Search title or certification…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <Select value={status} onValueChange={setStatusFilter}>
+        <Select value={status} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
@@ -132,6 +135,7 @@ function ExamsPage() {
             ))}
           </tbody>
         </table>
+        <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} />
       </div>
 
       <ExamEditor open={openEditor} onClose={() => setOpenEditor(false)} initial={editing} onSave={(p: any) => upsertMut.mutate(p)} saving={upsertMut.isPending} />

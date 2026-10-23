@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern } from "@/lib/admin-page";
 
 const rangeInput = z.object({
   from: z.string().datetime().optional(),
@@ -205,6 +206,8 @@ export const listSubscribers = createServerFn({ method: "POST" })
       )
       .order("created_at", { ascending: false });
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
+    const pattern = ilikePattern(data.search);
+    if (pattern) q = q.or(`plan_code.ilike.${pattern},stripe_customer_id.ilike.${pattern},scope.ilike.${pattern}`);
     const from = (data.page - 1) * data.pageSize;
     q = q.range(from, from + data.pageSize - 1);
     const { data: rows, count, error } = await q;

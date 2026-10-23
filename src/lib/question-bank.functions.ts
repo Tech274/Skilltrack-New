@@ -8,6 +8,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 
 const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 const QTYPES = ["single", "multi", "true_false"] as const;
@@ -55,35 +56,41 @@ export const listQuestions = createServerFn({ method: "GET" })
     certification_slug: z.string().optional(),
     difficulty: z.string().optional(),
     topic: z.string().optional(),
-    search: z.string().optional(),
+    search: z.string().max(200).optional(),
     org_id: z.string().uuid().optional(),
     only_active: z.boolean().optional(),
+    page: z.number().int().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).optional(),
   }).partial().optional())
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const caps = await getCallerCaps(context.supabase, context.userId);
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    const empty = { rows: [], total: 0, page: bounds.page, pageSize: bounds.pageSize };
 
-    let q = supabaseAdmin.from("question_bank").select("*").order("created_at", { ascending: false });
+    let q = supabaseAdmin.from("question_bank").select("*", { count: "exact" }).order("created_at", { ascending: false });
     if (data?.certification_slug) q = q.eq("certification_slug", data.certification_slug);
     if (data?.difficulty && data.difficulty !== "all") q = q.eq("difficulty", data.difficulty);
-    if (data?.topic) q = q.ilike("topic", `%${data.topic}%`);
+    const topic = ilikePattern(data?.topic);
+    if (topic) q = q.ilike("topic", topic);
     if (data?.only_active) q = q.eq("active", true);
-    if (data?.search) q = q.ilike("question_text", `%${data.search}%`);
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.ilike("question_text", pattern);
 
     // Non-admins: restrict to their org rows.
     if (!caps.isAdmin && !caps.isContent && !caps.isSuper) {
       const { data: memberships } = await supabaseAdmin
         .from("organization_members").select("org_id").eq("user_id", context.userId);
       const orgIds = (memberships ?? []).map((m: any) => m.org_id);
-      if (orgIds.length === 0) return [];
+      if (orgIds.length === 0) return empty;
       q = q.in("org_id", orgIds);
     } else if (data?.org_id) {
       q = q.eq("org_id", data.org_id);
     }
 
-    const { data: rows, error } = await q.limit(500);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 export const upsertQuestion = createServerFn({ method: "POST" })

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatInvoiceAmount, formatCurrencyTotals, sumByCurrency, INVOICE_CURRENCIES, isGstCurrency, type InvoiceCurrency } from "@/lib/invoice-currency";
 import { FileText, Plus, Download, Search, Send, Mail, History } from "lucide-react";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 import {
   listInvoices,
   createInvoice,
@@ -109,6 +110,7 @@ function InvoicesPage() {
 
   const [status, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [openNew, setOpenNew] = useState(false);
   const [preview, setPreview] = useState<{
     id: string;
@@ -129,10 +131,11 @@ function InvoicesPage() {
   const [bulkMessage, setBulkMessage] = useState("");
   const [auditOpen, setAuditOpen] = useState<{ id: string; number: string } | null>(null);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["admin", "invoices", status, search],
-    queryFn: () => list({ data: { status, search } }),
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "invoices", status, search, page],
+    queryFn: () => list({ data: { status, search, page, pageSize: 50 } }),
   });
+  const rows = data?.rows ?? [];
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const allOnPage = rows.length > 0 && rows.every((r: any) => selected[r.id]);
@@ -225,10 +228,10 @@ function InvoicesPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Invoices" value={String(totals.count)} icon={FileText} />
-        <KpiCard label="Total value" value={formatCurrencyTotals(totals.value)} />
-        <KpiCard label="Collected" value={formatCurrencyTotals(totals.paid)} tone="emerald" />
-        <KpiCard label="Outstanding" value={formatCurrencyTotals(totals.outstanding)} tone="amber" />
+        <KpiCard label="Invoices" value={String(data?.total ?? rows.length)} sub="Matching filters" icon={FileText} />
+        <KpiCard label="Page value" value={formatCurrencyTotals(totals.value)} sub="This page" />
+        <KpiCard label="Collected" value={formatCurrencyTotals(totals.paid)} tone="emerald" sub="This page" />
+        <KpiCard label="Outstanding" value={formatCurrencyTotals(totals.outstanding)} tone="amber" sub="This page" />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -239,12 +242,12 @@ function InvoicesPage() {
           />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search invoice #, learner, email"
             className="h-9 w-72 pl-9"
           />
         </div>
-        <Select value={status} onValueChange={setStatusFilter}>
+        <Select value={status} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue />
           </SelectTrigger>
@@ -421,6 +424,7 @@ function InvoicesPage() {
             ))}
           </tbody>
         </table>
+        <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} />
       </div>
 
       {/* Bulk email dialog */}
@@ -594,6 +598,7 @@ function EmailAuditList({ invoiceId }: { invoiceId?: string }) {
   const [status, setStatus] = useState<string>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(1);
   const filters = {
     invoiceId,
     recipient: recipient || undefined,
@@ -601,9 +606,10 @@ function EmailAuditList({ invoiceId }: { invoiceId?: string }) {
     status: status === "all" ? undefined : (status as any),
     fromDate: fromDate || undefined,
     toDate: toDate ? new Date(toDate + "T23:59:59").toISOString() : undefined,
-    limit: 200,
+    page,
+    pageSize: 50,
   };
-  const { data: rows = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: [
       "admin",
       "invoice-email-audit",
@@ -613,9 +619,11 @@ function EmailAuditList({ invoiceId }: { invoiceId?: string }) {
       status,
       fromDate,
       toDate,
+      page,
     ],
     queryFn: () => listAudit({ data: filters }),
   });
+  const rows = data?.rows ?? [];
   return (
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
@@ -703,6 +711,7 @@ function EmailAuditList({ invoiceId }: { invoiceId?: string }) {
           </table>
         </div>
       )}
+      <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} />
     </div>
   );
 }

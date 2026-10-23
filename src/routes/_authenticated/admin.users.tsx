@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ShieldCheck, Users, Trash2, Plus, X, Search } from "lucide-react";
 import {
@@ -10,6 +10,7 @@ import {
   revokeUserRole,
   deleteUser,
 } from "@/lib/admin.functions";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({ meta: [{ title: "User Management — SkillTrack-365" }] }),
@@ -48,11 +49,13 @@ function AdminUsersPage() {
   const del = useServerFn(deleteUser);
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: () => list(),
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "users", q, page],
+    queryFn: () => list({ data: { search: q, page, pageSize: 50 } }),
   });
+  const users = data?.rows ?? [];
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "users"] });
 
@@ -72,21 +75,11 @@ function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return users;
-    return users.filter((u: any) =>
-      (u.email ?? "").toLowerCase().includes(term) ||
-      (u.display_name ?? "").toLowerCase().includes(term),
-    );
-  }, [users, q]);
-
-  const stats = useMemo(() => {
-    const total = users.length;
-    const admins = users.filter((u: any) => u.roles.includes("admin")).length;
-    const managers = users.filter((u: any) => u.roles.includes("manager")).length;
-    return { total, admins, managers };
-  }, [users]);
+  const stats = {
+    total: data?.total ?? 0,
+    admins: data?.counts?.admins ?? 0,
+    managers: data?.counts?.managers ?? 0,
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
@@ -117,7 +110,7 @@ function AdminUsersPage() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Search by email or name…"
             className="w-full rounded-md border border-border bg-surface pl-9 pr-3 py-2 text-sm outline-none focus:border-primary"
           />
@@ -139,10 +132,10 @@ function AdminUsersPage() {
             {isLoading && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading users…</td></tr>
             )}
-            {!isLoading && filtered.length === 0 && (
+            {!isLoading && users.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No users found.</td></tr>
             )}
-            {filtered.map((u: any) => {
+            {users.map((u: any) => {
               const isSuperAdmin = !!u.is_super_admin;
               const missing = ALL_ROLES.filter((r) => !u.roles.includes(r));
               return (
@@ -238,6 +231,14 @@ function AdminUsersPage() {
             })}
           </tbody>
         </table>
+        <AdminListPager
+          page={data?.page ?? page}
+          pageSize={data?.pageSize ?? 50}
+          total={data?.total ?? 0}
+          onPage={setPage}
+          capped={data?.capped}
+          hasMore={data?.hasMore}
+        />
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">

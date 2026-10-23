@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { formatInvoiceAmount, formatInvoiceAmountPdf, INVOICE_CURRENCY_CODES } from "@/lib/invoice-currency";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 
 const FINANCE_ROLES = ["admin", "finance_admin"] as const;
 const READ_ROLES = ["admin", "finance_admin", "support_admin"] as const;
@@ -41,27 +42,26 @@ export const listInvoices = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
       status: z.string().optional(),
-      search: z.string().optional(),
-      limit: z.number().min(1).max(200).default(100),
+      search: z.string().max(200).optional(),
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bounds = pageBounds(data?.page, data?.pageSize);
     let q = supabaseAdmin
       .from("invoices")
-      .select("id, invoice_number, learner_id, learner_email, learner_name, description, plan_key, amount, discount, tax, total, currency, status, issue_date, due_date, paid_at, created_at, email_status, email_last_sent_at, email_last_error")
-      .order("issue_date", { ascending: false })
-      .limit(data?.limit ?? 100);
+      .select("id, invoice_number, learner_id, learner_email, learner_name, description, plan_key, amount, discount, tax, total, currency, status, issue_date, due_date, paid_at, created_at, email_status, email_last_sent_at, email_last_error", { count: "exact" })
+      .order("issue_date", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`invoice_number.ilike.${s},learner_email.ilike.${s},learner_name.ilike.${s}`);
-    }
-    const { data: rows, error } = await q;
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`invoice_number.ilike.${pattern},learner_email.ilike.${pattern},learner_name.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 export const getInvoice = createServerFn({ method: "GET" })
@@ -560,27 +560,30 @@ export const listInvoiceEmailAudit = createServerFn({ method: "GET" })
       status: z.enum(["queued", "sent", "failed"]).optional(),
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
-      limit: z.number().min(1).max(500).default(100),
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bounds = pageBounds(data?.page, data?.pageSize);
     let q = supabaseAdmin
       .from("invoice_email_audit")
-      .select("id, invoice_id, invoice_number, actor_id, actor_email, recipient_email, status, provider_message_id, error_message, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(data?.limit ?? 100);
+      .select("id, invoice_id, invoice_number, actor_id, actor_email, recipient_email, status, provider_message_id, error_message, metadata, created_at", { count: "exact" })
+      .order("created_at", { ascending: false });
     if (data?.invoiceId) q = q.eq("invoice_id", data.invoiceId);
     if (data?.status) q = q.eq("status", data.status);
-    if (data?.recipient) q = q.ilike("recipient_email", `%${data.recipient}%`);
-    if (data?.invoiceNumber) q = q.ilike("invoice_number", `%${data.invoiceNumber}%`);
+    const recipient = ilikePattern(data?.recipient);
+    if (recipient) q = q.ilike("recipient_email", recipient);
+    const number = ilikePattern(data?.invoiceNumber);
+    if (number) q = q.ilike("invoice_number", number);
     if (data?.fromDate) q = q.gte("created_at", data.fromDate);
     if (data?.toDate) q = q.lte("created_at", data.toDate);
-    const { data: rows, error } = await q;
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 async function sendOneInvoiceEmail(opts: {
@@ -666,28 +669,27 @@ export const listPayments = createServerFn({ method: "GET" })
     z.object({
       status: z.string().optional(),
       mode: z.string().optional(),
-      search: z.string().optional(),
-      limit: z.number().min(1).max(200).default(100),
+      search: z.string().max(200).optional(),
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bounds = pageBounds(data?.page, data?.pageSize);
     let q = supabaseAdmin
       .from("payments")
-      .select("id, invoice_id, learner_id, amount, currency, mode, status, transaction_id, paid_at, remarks, invoices(invoice_number, learner_email, learner_name)")
-      .order("paid_at", { ascending: false })
-      .limit(data?.limit ?? 100);
+      .select("id, invoice_id, learner_id, amount, currency, mode, status, transaction_id, paid_at, remarks, invoices(invoice_number, learner_email, learner_name)", { count: "exact" })
+      .order("paid_at", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     if (data?.mode && data.mode !== "all") q = q.eq("mode", data.mode);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`transaction_id.ilike.${s},remarks.ilike.${s}`);
-    }
-    const { data: rows, error } = await q;
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`transaction_id.ilike.${pattern},remarks.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 export const recordPayment = createServerFn({ method: "POST" })
@@ -773,7 +775,8 @@ export const searchLearners = createServerFn({ method: "GET" })
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin.from("profiles").select("id, display_name, avatar_url").limit(data?.limit ?? 20);
-    if (data?.q) q = q.ilike("display_name", `%${data.q}%`);
+    const pattern = ilikePattern(data?.q);
+    if (pattern) q = q.ilike("display_name", pattern);
     const { data: profs } = await q;
     // attach emails via auth admin
     const out: Array<{ id: string; display_name: string | null; email: string | null }> = [];

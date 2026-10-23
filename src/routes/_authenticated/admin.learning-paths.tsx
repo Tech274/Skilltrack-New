@@ -18,6 +18,7 @@ import { validatePath, hasBlockingErrors, type Issue } from "@/lib/learning-path
 import { pathToCsv, pathToPdf, downloadBlob, type ExportablePath } from "@/lib/learning-path-export";
 import { MilestoneTimeline } from "@/components/learning/milestone-timeline";
 import { PathVersionHistory } from "@/components/learning/path-version-history";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/learning-paths")({
   head: () => ({ meta: [{ title: "Learning Paths — Admin" }, { name: "robots", content: "noindex" }] }),
@@ -29,9 +30,11 @@ type Assessment = { title: string; kind?: string; passing_score?: number };
 
 function LearningPathsAdmin() {
   const listFn = useServerFn(listLearningPaths);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const list = useQuery({
-    queryKey: ["lp-list"],
-    queryFn: () => listFn({ data: {} }),
+    queryKey: ["lp-list", page, search],
+    queryFn: () => listFn({ data: { page, pageSize: 50, search } }),
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,6 +64,14 @@ function LearningPathsAdmin() {
         </Button>
       </div>
 
+      <div className="mt-6">
+        <Input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Search title or certification"
+        />
+      </div>
+
       <div className="mt-6 space-y-3">
         {list.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
         {(list.data?.rows ?? []).length === 0 && !list.isLoading && (
@@ -82,6 +93,7 @@ function LearningPathsAdmin() {
           </Card>
         ))}
       </div>
+      <AdminListPager page={list.data?.page ?? page} pageSize={list.data?.pageSize ?? 50} total={list.data?.total ?? 0} onPage={setPage} />
     </div>
   );
 }

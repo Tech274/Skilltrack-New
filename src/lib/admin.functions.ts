@@ -2,6 +2,13 @@ import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import {
+  countRoleAssignments,
+  countSuperAdmins,
+  directoryUser,
+  fallbackAuthUsers,
+  queryAdminDirectory,
+} from "@/lib/admin-directory.server";
 
 const ROLES = [
   "learner",
@@ -71,64 +78,46 @@ export const getEnabledAdminFeatures = createServerFn({ method: "GET" })
 
 export const listAllUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator(
+    z.object({
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
+      search: z.string().max(200).optional(),
+    }).optional(),
+  )
+  .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const allUsers: Array<{ id: string; email: string | null; created_at: string; last_sign_in_at: string | null }> = [];
-    let page = 1;
-    while (true) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error) throw new Error(error.message);
-      for (const u of data.users) {
-        allUsers.push({
-          id: u.id,
-          email: u.email ?? null,
-          created_at: u.created_at,
-          last_sign_in_at: u.last_sign_in_at ?? null,
-        });
-      }
-      if (data.users.length < 200) break;
-      page += 1;
-      if (page > 25) break;
+    const [admins, managers, supers] = await Promise.all([
+      countRoleAssignments(supabaseAdmin, "admin"),
+      countRoleAssignments(supabaseAdmin, "manager"),
+      countSuperAdmins(supabaseAdmin),
+    ]);
+    const counts = { admins, managers, supers };
+    const directory = await queryAdminDirectory(supabaseAdmin, {
+      search: data?.search,
+      page: data?.page,
+      pageSize: data?.pageSize,
+      order: "email",
+    });
+    if (directory) {
+      return {
+        rows: directory.rows.map(directoryUser),
+        total: directory.total,
+        page: directory.page,
+        pageSize: directory.pageSize,
+        capped: false,
+        hasMore: false,
+        counts,
+      };
     }
-
-    const ids = allUsers.map((u) => u.id);
-    const { data: roleRows, error: rerr } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id, role")
-      .in("user_id", ids);
-    if (rerr) throw new Error(rerr.message);
-
-    const { data: profiles } = await supabaseAdmin
-      .from("profiles")
-      .select("id, display_name, avatar_url")
-      .in("id", ids);
-
-    const { data: superRows } = await supabaseAdmin
-      .from("super_admins" as any)
-      .select("user_id")
-      .in("user_id", ids);
-    const superSet = new Set<string>(((superRows ?? []) as any[]).map((r: any) => r.user_id));
-
-    const roleMap = new Map<string, string[]>();
-    for (const r of roleRows ?? []) {
-      const arr = roleMap.get(r.user_id) ?? [];
-      arr.push(r.role);
-      roleMap.set(r.user_id, arr);
-    }
-    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-
-    return allUsers
-      .map((u) => ({
-        ...u,
-        roles: roleMap.get(u.id) ?? [],
-        is_super_admin: superSet.has(u.id),
-        display_name: (profileMap.get(u.id) as any)?.display_name ?? null,
-        avatar_url: (profileMap.get(u.id) as any)?.avatar_url ?? null,
-      }))
-      .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+    const fallback = await fallbackAuthUsers(supabaseAdmin, {
+      page: data?.page,
+      pageSize: data?.pageSize,
+      search: data?.search,
+    });
+    return { ...fallback, counts };
   });
 
 async function recordAudit(

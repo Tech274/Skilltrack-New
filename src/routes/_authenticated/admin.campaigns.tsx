@@ -14,6 +14,7 @@ import {
   type Campaign,
 } from "@/lib/campaigns.functions";
 import { CampaignSlide } from "@/components/campaign-carousel";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/campaigns")({
   head: () => ({ meta: [{ title: "Homepage campaigns — SkillTrack Admin" }] }),
@@ -74,7 +75,12 @@ function CampaignsAdmin() {
   const list = useServerFn(listCampaignsAdmin);
   const save = useServerFn(upsertCampaign);
   const remove = useServerFn(deleteCampaign);
-  const q = useQuery({ queryKey: ["admin-campaigns"], queryFn: () => list() });
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const q = useQuery({
+    queryKey: ["admin-campaigns", search, page],
+    queryFn: () => list({ data: { search, page, pageSize: 50 } }),
+  });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [preview, setPreview] = useState<Campaign | null>(null);
 
@@ -105,7 +111,7 @@ function CampaignsAdmin() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = q.data ?? [];
+  const rows = q.data?.rows ?? [];
 
   return (
     <div className="space-y-6 p-6">
@@ -125,6 +131,13 @@ function CampaignsAdmin() {
           <Plus size={16} /> New campaign
         </button>
       </div>
+
+      <input
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+        placeholder="Search title, headline, or slug"
+        className="w-full max-w-md rounded-md border border-border bg-background px-3 py-2 text-sm"
+      />
 
       {q.isLoading && <div className="text-sm text-muted-foreground">Loading campaigns…</div>}
       {q.error && <div className="text-sm text-destructive">{(q.error as Error).message}</div>}
@@ -193,6 +206,7 @@ function CampaignsAdmin() {
               })}
             </tbody>
           </table>
+          <AdminListPager page={q.data?.page ?? page} pageSize={q.data?.pageSize ?? 50} total={q.data?.total ?? 0} onPage={setPage} />
         </div>
       )}
 

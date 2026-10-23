@@ -2752,6 +2752,32 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
+      admin_directory_page: {
+        Args: {
+          _order?: string
+          _page?: number
+          _page_size?: number
+          _role?: string
+          _search?: string
+          _status?: string
+        }
+        Returns: {
+          avatar_url: string
+          banned_until: string
+          country: string
+          created_at: string
+          display_name: string
+          email: string
+          headline: string
+          id: string
+          is_super_admin: boolean
+          last_sign_in_at: string
+          roles: string[]
+          target_role: string
+          timezone: string
+          total_count: number
+        }[]
+      }
       join_demo_organization: {
         Args: never
         Returns: {
