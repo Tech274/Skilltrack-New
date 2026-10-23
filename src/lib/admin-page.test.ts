@@ -219,16 +219,21 @@ describe("paged admin lists", () => {
 });
 
 describe("loadUserEmails fallback", () => {
-  function adminWith(pages: Array<Array<{ id: string; email: string | null }>>, code = "PGRST202") {
-    let call = 0;
+  function adminWith(totalUsers: number, code = "PGRST202") {
+    const calls: Array<{ page: number; perPage: number }> = [];
+    const directory = Array.from({ length: totalUsers }, (_, i) => ({
+      id: `user-${i + 1}`,
+      email: `user-${i + 1}@example.com`,
+    }));
     return {
+      calls,
       rpc: async () => ({ data: null, error: { code } }),
       auth: {
         admin: {
-          listUsers: async () => {
-            const users = pages[call] ?? [];
-            call += 1;
-            return { data: { users }, error: null };
+          listUsers: async ({ page, perPage }: { page: number; perPage: number }) => {
+            calls.push({ page, perPage });
+            const start = (page - 1) * perPage;
+            return { data: { users: directory.slice(start, start + perPage) }, error: null };
           },
         },
       },
@@ -236,28 +241,26 @@ describe("loadUserEmails fallback", () => {
   }
 
   it("returns emails from a directory of 5,000 or fewer users", async () => {
-    const admin = adminWith([[{ id: "user-1", email: "one@example.com" }]]);
+    const admin = adminWith(1);
     const emails = await loadUserEmails(admin as never, ["user-1", "missing"]);
-    expect(emails.get("user-1")).toBe("one@example.com");
+    expect(emails.get("user-1")).toBe("user-1@example.com");
     expect(emails.has("missing")).toBe(false);
+    expect(admin.calls).toEqual([{ page: 1, perPage: 200 }]);
   });
 
   it("throws when the migration is missing and the directory is over 5,000 users", async () => {
-    const full = Array.from({ length: 200 }, (_, i) => ({ id: `other-${i}`, email: `other-${i}@example.com` }));
-    const pages = Array.from({ length: 25 }, () => full);
-    pages.push([{ id: "user-5001", email: "past-cap@example.com" }]);
-    const admin = adminWith(pages, "42883");
+    const admin = adminWith(5001, "42883");
     await expect(loadUserEmails(admin as never, ["wanted-user"])).rejects.toThrow(
       /more than 5,000 users/,
     );
+    expect(admin.calls.at(-1)).toEqual({ page: 5001, perPage: 1 });
   });
 
   it("does not throw when the 5,000th user is the last one", async () => {
-    const full = Array.from({ length: 200 }, (_, i) => ({ id: `other-${i}`, email: null }));
-    const pages = Array.from({ length: 25 }, () => full);
-    pages.push([]);
-    const admin = adminWith(pages);
+    const admin = adminWith(5000);
     const emails = await loadUserEmails(admin as never, ["wanted-user"]);
     expect(emails.has("wanted-user")).toBe(false);
+    expect(admin.calls.at(-1)).toEqual({ page: 5001, perPage: 1 });
+    expect(admin.calls).not.toContainEqual({ page: 26, perPage: 1 });
   });
 });

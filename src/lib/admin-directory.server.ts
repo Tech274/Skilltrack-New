@@ -240,7 +240,7 @@ export async function loadUserEmails(
 
   if (map.size < wanted.size) {
     const { data: extra, error: extraError } = await admin.auth.admin.listUsers({
-      page: maxPages + 1,
+      page: EMAIL_FALLBACK_MAX_USERS + 1,
       perPage: 1,
     });
     if (extraError) throw new Error("Could not load user emails");
