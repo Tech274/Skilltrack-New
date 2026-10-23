@@ -37,7 +37,7 @@ export const OEMS: Oem[] = [
   { slug: "kubernetes", name: "CNCF / Kubernetes", blurb: "CKA · CKAD · KCNA", localSrc: "/logos/oem/kubernetes.svg", color: "#326CE5" },
 ];
 
-function LogoMark({ oem }: { oem: Oem }) {
+function LogoMark({ oem, loading = "lazy" }: { oem: Oem; loading?: "eager" | "lazy" }) {
   const [failed, setFailed] = useState(false);
   const src = oem.localSrc ?? (oem.logo ? `https://cdn.simpleicons.org/${oem.logo}` : undefined);
   const wide = oem.logoLayout === "wordmark";
@@ -62,7 +62,8 @@ function LogoMark({ oem }: { oem: Oem }) {
       alt={`${oem.name} logo`}
       width={wide ? 96 : 44}
       height={wide ? 40 : 44}
-      loading="lazy"
+      loading={loading}
+      decoding="async"
       className={
         (wide
           ? "h-10 w-24 shrink-0 object-contain object-left"
@@ -127,7 +128,7 @@ export function OemTiles({ limit }: { limit?: number }) {
           search={{ oem: oem.slug }}
           className="group flex items-center gap-4 rounded-xl border border-border bg-surface/70 p-4 text-left backdrop-blur transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
         >
-          <LogoMark oem={oem} />
+          <LogoMark oem={oem} loading="eager" />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-foreground">{oem.name}</div>
             <div className="truncate text-xs text-muted-foreground">{oem.blurb}</div>

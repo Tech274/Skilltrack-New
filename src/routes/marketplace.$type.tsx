@@ -107,6 +107,10 @@ function OemCard({ oem, hub }: { oem: MarketplaceOem; hub: PrepSkuTypeHub }) {
         <img
           src={marketplaceOemLogoPath(oem.key)}
           alt=""
+          width={160}
+          height={40}
+          loading="lazy"
+          decoding="async"
           className="h-10 w-auto max-w-[160px] object-contain"
         />
       </div>

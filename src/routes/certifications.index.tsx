@@ -131,16 +131,28 @@ function OemLogoMark({ oem }: { oem: OemCatalogueEntry }) {
       </div>
     );
   }
+  const modern =
+    oem.file === "scaled-agile.jpg"
+      ? {
+          avif: "/logos/oem/scaled-agile.avif",
+          webp: "/logos/oem/scaled-agile.webp",
+        }
+      : null;
   return (
-    <img
-      src={oem.logoSrc}
-      alt=""
-      width={120}
-      height={56}
-      loading="lazy"
-      className="max-h-14 w-auto max-w-[140px] object-contain"
-      onError={() => setFailed(true)}
-    />
+    <picture>
+      {modern && <source srcSet={modern.avif} type="image/avif" />}
+      {modern && <source srcSet={modern.webp} type="image/webp" />}
+      <img
+        src={oem.logoSrc}
+        alt=""
+        width={120}
+        height={56}
+        loading="lazy"
+        decoding="async"
+        className="max-h-14 w-auto max-w-[140px] object-contain"
+        onError={() => setFailed(true)}
+      />
+    </picture>
   );
 }
 

@@ -158,6 +158,9 @@ function MarketplaceOemCertListPage({ oem, typeHub, certs }: OemCertsData) {
           <img
             src={marketplaceOemLogoPath(oem.key)}
             alt=""
+            width={160}
+            height={40}
+            decoding="async"
             className="h-10 w-auto max-w-[160px] object-contain"
           />
           <div>

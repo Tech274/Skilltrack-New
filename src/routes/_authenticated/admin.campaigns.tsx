@@ -286,7 +286,17 @@ function ImageField(props: {
     <Field label={props.label}>
       <div className="flex items-center gap-3">
         <div className="h-16 w-24 overflow-hidden rounded-md border border-border bg-surface">
-          {props.src && <img src={props.src} alt="" className="h-full w-full object-cover" />}
+          {props.src && (
+            <img
+              src={props.src}
+              alt=""
+              width={96}
+              height={64}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          )}
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-surface">
           <Upload size={14} /> {busy ? "Uploading…" : props.value ? "Replace" : "Upload"}

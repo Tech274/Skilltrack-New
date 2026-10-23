@@ -150,7 +150,15 @@ function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {u.avatar_url ? (
-                        <img src={u.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                        <img
+                          src={u.avatar_url}
+                          alt=""
+                          width={32}
+                          height={32}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground grid place-items-center">
                           {(u.display_name ?? u.email ?? "?").charAt(0).toUpperCase()}

@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -160,7 +160,11 @@ function RootComponent() {
       <div className="flex min-h-screen flex-col bg-background text-foreground">
         <SiteHeader />
         <main className="flex-1">
-          <Outlet />
+          {/* Route components are React.lazy / dynamic-import chunks. This boundary
+              covers client navigations while the route module is still loading. */}
+          <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
+            <Outlet />
+          </Suspense>
         </main>
         <SiteFooter />
       </div>

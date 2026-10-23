@@ -7,7 +7,7 @@
  *
  * Bump this number whenever the underlying asset bytes change.
  */
-export const BRAND_VERSION = 9;
+export const BRAND_VERSION = 10;
 
 import ogAsset from "@/assets/skilltrack-og.png.asset.json";
 
