@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 import type { Campaign } from "@/lib/campaigns.functions";
 
 const ROTATE_MS = 7000;
@@ -31,6 +32,7 @@ function CtaLink({
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {children}
+      {external ? <ExternalLinkMarker className="size-3.5" /> : null}
     </a>
   );
 }
@@ -45,7 +47,9 @@ function FallbackArt({ c }: { c: Campaign }) {
         <div className="font-mono text-xs uppercase tracking-wider text-accent">
           {c.campaign_type.replace("-", " ")}
         </div>
-        <div className="mt-3 text-2xl font-semibold text-gradient md:text-3xl">{c.title}</div>
+        <div className="mt-3 text-balance text-2xl font-semibold leading-tight text-gradient md:text-3xl">
+          {c.title}
+        </div>
       </div>
     </div>
   );
@@ -90,11 +94,13 @@ export function CampaignSlide({ c, eager = true }: { c: Campaign; eager?: boolea
             </span>
           )}
         </div>
-        <h2 className="mt-4 text-3xl font-semibold tracking-tight text-foreground md:text-5xl">
+        <h2 className="mt-4 text-balance break-words text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl">
           {c.headline}
         </h2>
         {c.description && (
-          <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">{c.description}</p>
+          <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+            {c.description}
+          </p>
         )}
         <div className={`mt-7 flex flex-wrap items-center gap-4 ${center ? "justify-center" : ""}`}>
           <CtaLink

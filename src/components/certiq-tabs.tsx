@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ExternalLinkMarker } from "@/components/external-link";
 import { buildHandoffUrl, SKILLBRIDGE_BASE_URL } from "@/lib/handoff";
 import { useHandoffContext } from "@/hooks/use-handoff-context";
 
@@ -33,9 +34,10 @@ export function CertIqTabs() {
               href={buildHandoffUrl(t.href, handoff)}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+              className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
             >
               {t.label}
+              <ExternalLinkMarker className="size-3" />
             </a>
           ) : (
             <Link

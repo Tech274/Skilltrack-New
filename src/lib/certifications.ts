@@ -14,6 +14,10 @@ export interface Certification {
   passingScore: number;
   validityYears: number;
   difficulty: Difficulty;
+  /**
+   * Unpublished sample figure. No dataset or date is stored in this repo.
+   * Do not render it — use PASS_OUTLOOK instead.
+   */
   successRate: number;
   avgSalary: number;
   demandScore: number; // 0-100
@@ -23,6 +27,9 @@ export interface Certification {
   domains: { name: string; weight: number }[];
   roles: string[];
 }
+
+/** Non-numeric stand-in for unsourced `successRate` figures. */
+export const PASS_OUTLOOK = "Varies by candidate";
 
 export const categories = [
   {

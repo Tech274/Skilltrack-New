@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Award, Check, ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { certifications, getCert } from "@/lib/certifications";
+import { PASS_OUTLOOK, certifications, getCert } from "@/lib/certifications";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/compare")({
@@ -86,7 +86,6 @@ function BookmarkCompare() {
           highestSalary: maxBy(items, (c) => c.avgSalary),
           highestDemand: maxBy(items, (c) => c.demandScore),
           bestROI: maxBy(items, (c) => c.roiScore),
-          easiest: maxBy(items, (c) => c.successRate),
         }
       : null;
 
@@ -147,13 +146,12 @@ function BookmarkCompare() {
             </div>
 
             {winners && (
-              <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+              <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Lowest cost", c: winners.cheapest },
                   { label: "Highest salary", c: winners.highestSalary },
                   { label: "Highest demand", c: winners.highestDemand },
                   { label: "Best ROI", c: winners.bestROI },
-                  { label: "Easiest pass", c: winners.easiest },
                 ].map((w) => (
                   <div
                     key={w.label}
@@ -204,7 +202,7 @@ function BookmarkCompare() {
                   <Row label="Difficulty" items={items.map((c) => c.difficulty)} />
                   <Row label="Exam cost" items={items.map((c) => `$${c.cost}`)} mono />
                   <Row label="Duration" items={items.map((c) => `${c.durationMin} min`)} mono />
-                  <Row label="Success rate" items={items.map((c) => `${c.successRate}%`)} mono />
+                  <Row label="Pass outlook" items={items.map(() => PASS_OUTLOOK)} />
                   <Row
                     label="Avg salary"
                     items={items.map((c) => `$${c.avgSalary.toLocaleString()}`)}

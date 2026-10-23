@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Menu, X, LogOut, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,9 +94,10 @@ export function SiteHeader() {
                 href={buildHandoffUrl(item.href, handoff)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-surface"
+                className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-surface"
               >
                 {item.label}
+                <ExternalLinkMarker className="size-3.5" />
               </a>
             ) : (
               <Link
@@ -211,9 +213,10 @@ export function SiteHeader() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-surface"
+                  className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-surface"
                 >
                   {item.label}
+                  <ExternalLinkMarker className="size-3.5" />
                 </a>
               ) : (
                 <Link
@@ -338,6 +341,11 @@ export function SiteFooter() {
           ))}
 
         </div>
+        <p className="mt-10 max-w-3xl border-t border-border/60 pt-6 text-xs leading-relaxed text-muted-foreground">
+          AWS, Microsoft, Google Cloud, and other vendor names and logos are trademarks of their
+          respective owners. SkillTrack is not affiliated with, endorsed by, or sponsored by these
+          vendors.
+        </p>
       </div>
     </footer>
   );

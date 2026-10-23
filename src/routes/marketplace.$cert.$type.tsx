@@ -1,7 +1,8 @@
 import { hasSalesWhatsApp } from "@/config/contact";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { formatInvoiceAmount } from "@/lib/invoice-currency";
-import { ArrowRight, Check, ExternalLink, MessageCircle } from "lucide-react";
+import { ArrowRight, Check, MessageCircle } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 import {
   getMarketplaceOem,
   getPrepSkuFromCatalog,
@@ -267,6 +268,7 @@ function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
               >
                 <MessageCircle size={16} />
                 WhatsApp
+                <ExternalLinkMarker className="size-3.5" />
               </a>
               )}
             </div>
@@ -283,7 +285,7 @@ function MarketplaceSkuPage({ cert, sku, oem, typeHub }: SkuData) {
                   className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
                 >
                   {sku.fulfilledOn.label}
-                  <ExternalLink size={14} />
+                  <ExternalLinkMarker className="size-3.5" />
                 </a>
               </p>
             )}

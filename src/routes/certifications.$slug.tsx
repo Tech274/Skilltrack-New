@@ -11,7 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { getCert, certifications } from "@/lib/certifications";
+import { PASS_OUTLOOK, getCert, certifications } from "@/lib/certifications";
 import { getMarketplaceCertByCatalogSlug } from "@/lib/marketplace";
 import { brandForVendor } from "@/lib/vendor-brands";
 import { VendorLogo } from "@/components/cert-marketplace-card";
@@ -233,7 +233,7 @@ function CertPage() {
                 <Fact icon={Target} label="Passing score" value={String(cert.passingScore)} />
                 <Fact icon={RefreshCw} label="Validity" value={`${cert.validityYears} yr`} />
                 <Fact icon={GraduationCap} label="Difficulty" value={cert.difficulty} />
-                <Fact icon={TrendingUp} label="Success rate" value={`${cert.successRate}%`} />
+                <Fact icon={TrendingUp} label="Pass outlook" value={PASS_OUTLOOK} />
               </dl>
               <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
                 {REGION_DISCLAIMER} {EXAM_COST_TIP}

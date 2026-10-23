@@ -1,3 +1,5 @@
+import { ExternalLinkMarker } from "@/components/external-link";
+
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 
 export function PaymentTestModeBanner() {
@@ -16,9 +18,10 @@ export function PaymentTestModeBanner() {
           href="https://docs.lovable.dev/features/payments#test-and-live-environments"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline font-medium"
+          className="inline-flex items-center gap-1 font-medium underline"
         >
           Read more
+          <ExternalLinkMarker className="size-3" />
         </a>
       </div>
     );

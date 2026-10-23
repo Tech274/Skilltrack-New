@@ -8,6 +8,7 @@ import {
   LineChart,
 } from "lucide-react";
 import { CertIqTabs } from "@/components/certiq-tabs";
+import { ExternalLinkMarker } from "@/components/external-link";
 import { buildHandoffUrl, SKILLBRIDGE_BASE_URL } from "@/lib/handoff";
 import { useHandoffContext } from "@/hooks/use-handoff-context";
 import { OEM_NAMES, certLadderForOem } from "@/lib/assessment";
@@ -124,7 +125,15 @@ function CertIqPage() {
               <h2 className="mt-5 text-lg font-semibold">{s.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
               <div className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-accent">
-                Open <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                Open{" "}
+                {"external" in s ? (
+                  <ExternalLinkMarker className="size-3" />
+                ) : (
+                  <ArrowRight
+                    size={12}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                )}
               </div>
             </>
           );

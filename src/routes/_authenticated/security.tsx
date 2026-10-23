@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ExternalLinkMarker } from "@/components/external-link";
 import {
   listSecurityFindings,
   getFindingEvents,
@@ -159,7 +160,12 @@ function SecurityPage() {
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(f.last_seen_at).toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  {f.link && <a href={f.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Docs</a>}
+                  {f.link && (
+                    <a href={f.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      Docs
+                      <ExternalLinkMarker className="size-3" />
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}

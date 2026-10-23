@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import type { Certification } from "@/lib/certifications";
+import { PASS_OUTLOOK, type Certification } from "@/lib/certifications";
 import { brandForVendor } from "@/lib/vendor-brands";
 
 export function VendorLogo({
@@ -152,7 +152,7 @@ export function CertMarketplaceCard({
         {variant === "marketplace" ? (
           <div className="grid grid-cols-4 gap-2 border-t border-border/60 pt-4 text-xs">
             <Stat label="Cost" value={`$${cert.cost}`} />
-            <Stat label="Pass" value={`${cert.successRate}%`} />
+            <Stat label="Pass outlook" value={PASS_OUTLOOK} />
             <Stat label="Salary" value={`$${Math.round(cert.avgSalary / 1000)}K`} />
             <Stat label="ROI" value={String(cert.roiScore)} />
           </div>
@@ -160,7 +160,7 @@ export function CertMarketplaceCard({
           <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-4 text-xs">
             <Stat label="Salary" value={`$${Math.round(cert.avgSalary / 1000)}K`} />
             <Stat label="Demand" value={String(cert.demandScore)} />
-            <Stat label="Pass" value={`${cert.successRate}%`} />
+            <Stat label="Pass outlook" value={PASS_OUTLOOK} />
           </div>
         )}
       </div>
@@ -172,7 +172,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-muted-foreground">{label}</div>
-      <div className="mt-0.5 font-mono font-semibold text-foreground">{value}</div>
+      <div className="mt-0.5 text-pretty font-mono font-semibold leading-snug text-foreground">
+        {value}
+      </div>
     </div>
   );
 }
