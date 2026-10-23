@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { OemTiles } from "@/components/oem-doorway";
+import { ExamDateLeadForm } from "@/components/exam-date-lead-form";
 import { listLiveCampaigns, type Campaign } from "@/lib/campaigns.functions";
 
 const CampaignCarousel = lazy(() =>
@@ -106,6 +107,12 @@ function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60">
+        <div className="mx-auto max-w-3xl px-6 py-16">
+          <ExamDateLeadForm />
         </div>
       </section>
 
