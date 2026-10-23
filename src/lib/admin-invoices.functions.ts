@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -45,6 +46,7 @@ export const listInvoices = createServerFn({ method: "GET" })
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin
@@ -66,6 +68,7 @@ export const getInvoice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: inv, error } = await supabaseAdmin.from("invoices").select("*").eq("id", data.id).maybeSingle();
@@ -100,6 +103,7 @@ export const createInvoice = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -163,6 +167,7 @@ export const updateInvoiceStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["draft","sent","paid","overdue","cancelled"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const patch: any = { status: data.status };
@@ -177,6 +182,7 @@ export const deleteInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("invoices").delete().eq("id", data.id);
@@ -471,6 +477,7 @@ export const generateInvoicePdf = createServerFn({ method: "POST" })
     intent: z.enum(["view", "download", "regenerate"]).default("download"),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { bytes, invoice, snapshot } = await renderInvoicePdfBytes(data.id);
     const { logInvoiceAction } = await import("@/lib/invoice-audit.server");
@@ -501,6 +508,7 @@ export const emailInvoicePdf = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     return sendOneInvoiceEmail({
       invoiceId: data.id,
@@ -519,6 +527,7 @@ export const bulkEmailInvoicePdfs = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const results: Array<{ id: string; ok: boolean; to?: string; error?: string }> = [];
     for (const id of data.ids) {
@@ -555,6 +564,7 @@ export const listInvoiceEmailAudit = createServerFn({ method: "GET" })
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin
@@ -661,6 +671,7 @@ export const listPayments = createServerFn({ method: "GET" })
     }).partial().optional(),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin
@@ -695,6 +706,7 @@ export const recordPayment = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: pay, error } = await supabaseAdmin
@@ -741,6 +753,7 @@ export const updatePaymentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["pending", "success", "failed", "refunded"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("payments").update({ status: data.status }).eq("id", data.id);
@@ -756,6 +769,7 @@ export const searchLearners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ q: z.string().default(""), limit: z.number().min(1).max(50).default(20) }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin.from("profiles").select("id, display_name, avatar_url").limit(data?.limit ?? 20);
@@ -777,6 +791,7 @@ export const searchLearners = createServerFn({ method: "GET" })
 export const listCertificationOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertFinanceRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin

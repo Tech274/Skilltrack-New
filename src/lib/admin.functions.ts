@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -32,17 +33,14 @@ async function assertSuperAdmin(supabase: any, userId: string) {
   return await getActor(supabaseAdmin, userId);
 }
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { getAdminContext } = await import("@/lib/admin-auth.server");
-  const ctx = await getAdminContext(userId);
-  if (!ctx.isAnyAdmin) throw new Error("Forbidden: admin role required");
-}
-
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { getAdminContext } = await import("@/lib/admin-auth.server");
     const ctx = await getAdminContext(context.userId);
+    // Site header calls this for every signed-in user. Non-admins get
+    // isAdmin: false. Admins still go through requireAdmin.
+    if (ctx.isAnyAdmin) await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const actor = await getActor(supabaseAdmin, context.userId);
     return { isAdmin: ctx.isAnyAdmin, isSuperAdmin: ctx.isSuperAdmin, email: actor.email, roles: ctx.roles };
@@ -52,7 +50,7 @@ export const checkIsAdmin = createServerFn({ method: "GET" })
 export const getEnabledAdminFeatures = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Find super admin
     const { data: superRow } = await supabaseAdmin
@@ -74,6 +72,7 @@ export const getEnabledAdminFeatures = createServerFn({ method: "GET" })
 export const listAllUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -154,6 +153,7 @@ export const grantUserRole = createServerFn({ method: "POST" })
     z.object({ userId: z.string().uuid(), role: roleSchema }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const actor = await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tu } = await supabaseAdmin.auth.admin.getUserById(data.userId);
@@ -178,6 +178,7 @@ export const revokeUserRole = createServerFn({ method: "POST" })
     z.object({ userId: z.string().uuid(), role: roleSchema }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const actor = await assertSuperAdmin(context.supabase, context.userId);
     if (data.role === "admin" && data.userId === context.userId) {
       throw new Error("You cannot revoke your own admin role.");
@@ -208,6 +209,7 @@ export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { userId: string }) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertSuperAdmin(context.supabase, context.userId);
     if (data.userId === context.userId) throw new Error("You cannot delete your own account.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -224,6 +226,7 @@ export const deleteUser = createServerFn({ method: "POST" })
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
@@ -239,7 +242,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
 export const listPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("subscription_plans")
@@ -252,7 +255,7 @@ export const listPlans = createServerFn({ method: "GET" })
 export const getSuperSubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("super_admin_subscription")
@@ -267,6 +270,7 @@ export const updateSuperSubscription = createServerFn({ method: "POST" })
     z.object({ plan_key: z.string(), status: z.enum(["active", "past_due", "canceled"]).optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const actor = await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existing } = await supabaseAdmin
@@ -293,7 +297,7 @@ export const updateSuperSubscription = createServerFn({ method: "POST" })
 export const listPermissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("role_permissions")
@@ -310,6 +314,7 @@ export const updatePermission = createServerFn({ method: "POST" })
     z.object({ role: roleSchema, permission: z.string().min(1), allowed: z.boolean() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const actor = await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Capture previous value for audit
@@ -340,6 +345,7 @@ export const updatePermission = createServerFn({ method: "POST" })
 export const listPermissionAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin

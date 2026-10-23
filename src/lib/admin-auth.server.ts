@@ -1,6 +1,8 @@
 // Standardized admin authorization helpers.
 //
-// `assertAdminOrSuper` — any of the legacy admin-flavor roles or a Super Admin.
+// `requireAdmin`       — any admin-flavor role, or a row in `super_admins`.
+//                        This is the shared gate every admin server function calls.
+// `assertAdminOrSuper` — same gate as `requireAdmin` (kept for existing callers).
 // `assertPermission`   — super, or any of the user's roles grants the named permission
 //                        in the `role_permissions` matrix.
 //
@@ -43,13 +45,20 @@ export async function getAdminContext(userId: string): Promise<{
       .eq("allowed", true);
     permissions = new Set(((data ?? []) as any[]).map((r) => r.permission));
   }
-  const isAnyAdmin = isSuperAdmin || roles.some((r) => (ADMIN_ROLES as readonly string[]).includes(r));
+  const isAnyAdmin =
+    isSuperAdmin || roles.some((r) => (ADMIN_ROLES as readonly string[]).includes(r));
   return { isSuperAdmin, roles, permissions, isAnyAdmin };
 }
 
+/** Any admin-flavor role, or a Super Admin (`super_admins`). Throws otherwise. */
+export async function requireAdmin(userId: string) {
+  const ctx = await getAdminContext(userId);
+  if (!ctx.isAnyAdmin) throw new Error("Forbidden: admin role required");
+  return ctx;
+}
+
 export async function assertAdminOrSuper(userId: string): Promise<void> {
-  const { isAnyAdmin } = await getAdminContext(userId);
-  if (!isAnyAdmin) throw new Error("Forbidden: admin role required");
+  await requireAdmin(userId);
 }
 
 export async function assertPermission(userId: string, permission: string): Promise<void> {

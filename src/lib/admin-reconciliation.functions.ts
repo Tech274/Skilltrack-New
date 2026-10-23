@@ -4,6 +4,7 @@
 //   produce a human-review checklist when confidence is low. NO mutations.
 // - applyReconciliationMatch: write; only called when a user clicks Approve.
 // - rejectReconciliationMatch: logs a rejection (no DB mutation to invoice/payment).
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateObject } from "ai";
@@ -115,6 +116,7 @@ const AiSchema = z.object({
 export const analyzeReconciliation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertRoles(context, READ_ROLES);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -249,6 +251,7 @@ export const applyReconciliationMatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { paymentId: string; invoiceId: string; markPaid: boolean; confidence?: number; reasons?: string[]; checklist?: string[]; notes?: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRoles(context, WRITE_ROLES);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -295,6 +298,7 @@ export const rejectReconciliationMatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { paymentId: string; invoiceId: string; reason?: string; confidence?: number }) => input)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRoles(context, WRITE_ROLES);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("invoice_reconciliation_decisions").insert({

@@ -1,12 +1,6 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-async function assertAnyAdmin(_supabase: any, userId: string) {
-  const { getAdminContext } = await import("@/lib/admin-auth.server");
-  const ctx = await getAdminContext(userId);
-  if (!ctx.isAnyAdmin) throw new Error("Forbidden: admin role required");
-  return ctx.roles;
-}
 
 function monthKey(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -15,7 +9,7 @@ function monthKey(d: Date) {
 export const getAdminDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAnyAdmin(context.supabase, context.userId);
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const now = new Date();
@@ -130,6 +124,10 @@ export const getAdminRoles = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { getAdminContext } = await import("@/lib/admin-auth.server");
     const ctx = await getAdminContext(context.userId);
+    // Probe for the admin shell. Non-admins must receive isAnyAdmin: false,
+    // not a throw, so the layout can show the access-required screen.
+    // Admins still pass requireAdmin, the same gate as every other admin function.
+    if (ctx.isAnyAdmin) await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
     return {

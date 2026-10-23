@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -26,6 +27,7 @@ const assetType = z.enum(["certification", "resource", "mock_exam"]);
 export const listAssignableAssets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [certs, resources, exams] = await Promise.all([
@@ -44,6 +46,7 @@ export const listLearnerAssignments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ learner_id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
@@ -65,6 +68,7 @@ export const assignAsset = createServerFn({ method: "POST" })
     notes: z.string().max(2000).optional().nullable(),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -115,6 +119,7 @@ export const updateAssignmentStatus = createServerFn({ method: "POST" })
     status: z.enum(["assigned", "in_progress", "completed", "revoked"]),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("learner_assignments").update({ status: data.status }).eq("id", data.id);
@@ -126,6 +131,7 @@ export const removeAssignment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("learner_assignments").delete().eq("id", data.id);

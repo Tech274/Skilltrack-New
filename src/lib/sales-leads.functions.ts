@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
@@ -75,6 +76,7 @@ async function callSheet(params: Record<string, string>) {
 export const listSalesLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertSalesAccess(context.supabase, context.userId);
     const json: any = await callSheet({ action: "read" });
     if (json?.ok === false) throw new Error(String(json.error ?? "Sheet read failed"));
@@ -108,6 +110,7 @@ export const updateSalesLeadStatus = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertSalesAccess(context.supabase, context.userId);
     const json: any = await callSheet({
       action: "updateStatus",
