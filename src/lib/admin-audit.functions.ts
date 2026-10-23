@@ -23,7 +23,9 @@ export const listAdminAuditLog = createServerFn({ method: "GET" })
       .optional(),
   )
   .handler(async ({ data, context }) => {
+    const { requireAdmin } = await import("@/lib/admin-auth.server");
     const { isSuperAdminUser } = await import("@/lib/super-admin.server");
+    await requireAdmin(context.userId);
     if (!(await isSuperAdminUser(context.userId))) {
       throw new Error("Forbidden: super admin required");
     }
@@ -36,7 +38,8 @@ export const listAdminAuditLog = createServerFn({ method: "GET" })
       .select("id, created_at, actor_id, action, target_table, target_id, summary", {
         count: "exact",
       })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     const pattern = searchPattern(data?.search);
     if (pattern) {
       q = q.or(

@@ -158,10 +158,14 @@ describe("admin mutation coverage", () => {
       }
     }
     const list = readFileSync("src/lib/admin-audit.functions.ts", "utf8");
+    expect(list).toContain("await requireAdmin(context.userId)");
     expect(list).toContain("isSuperAdminUser");
     expect(list).toContain("Forbidden: super admin required");
     expect(list).not.toContain("assertAdminOrSuper");
-    expect(list).not.toContain("requireAdmin");
+    const createdOrder = list.indexOf('.order("created_at", { ascending: false })');
+    const idOrder = list.indexOf('.order("id", { ascending: false })');
+    expect(createdOrder).toBeGreaterThan(-1);
+    expect(idOrder).toBeGreaterThan(createdOrder);
     const nav = readFileSync("src/routes/_authenticated/admin.tsx", "utf8");
     expect(nav).toContain(
       'to: "/admin/audit", label: "Audit Log", icon: ScrollText, superOnly: true',
