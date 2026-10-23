@@ -40,9 +40,9 @@ export const Route = createFileRoute("/career-explorer")({
         content:
           "Tell our AI your role, skills, and goals. Get a ranked certification roadmap with ROI, timelines, and projected salary lift.",
       },
-      { property: "og:url", content: "/career-explorer" },
+      { property: "og:url", content: "https://skilltrack.co.in/career-explorer" },
     ],
-    links: [{ rel: "canonical", href: "/career-explorer" }],
+    links: [{ rel: "canonical", href: "https://skilltrack.co.in/career-explorer" }],
   }),
   component: CareerExplorer,
 });

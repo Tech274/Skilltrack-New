@@ -45,9 +45,9 @@ export const Route = createFileRoute("/certifications/$slug")({
         { property: "og:title", content: `${c.name} — SkillTrack-365` },
         { property: "og:description", content: c.tagline },
         { property: "og:type", content: "article" },
-        { property: "og:url", content: `/certifications/${c.slug}` },
+        { property: "og:url", content: `https://skilltrack.co.in/certifications/${c.slug}` },
       ],
-      links: [{ rel: "canonical", href: `/certifications/${c.slug}` }],
+      links: [{ rel: "canonical", href: `https://skilltrack.co.in/certifications/${c.slug}` }],
       scripts: [
         {
           type: "application/ld+json",

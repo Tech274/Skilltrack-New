@@ -72,7 +72,7 @@ export function VendorLogo({
     >
       <img
         src={src}
-        alt=""
+        alt={`${label} logo`}
         width={hero ? 220 : cover ? 160 : layout === "wordmark" ? 96 : 48}
         height={hero ? 64 : cover ? 48 : layout === "wordmark" ? 40 : 48}
         loading="lazy"

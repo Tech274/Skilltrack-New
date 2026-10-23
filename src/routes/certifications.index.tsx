@@ -134,7 +134,7 @@ function OemLogoMark({ oem }: { oem: OemCatalogueEntry }) {
   return (
     <img
       src={oem.logoSrc}
-      alt=""
+      alt={`${oem.name} logo`}
       width={120}
       height={56}
       loading="lazy"

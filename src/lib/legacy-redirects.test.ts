@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { LEGACY_REDIRECTS, legacyLocationHref, legacyRedirectUrl } from "./legacy-redirects";
-import { CONTENT_SECURITY_POLICY, withSecurityHeaders, X_FRAME_OPTIONS } from "./security-headers";
+import {
+  CONTENT_SECURITY_POLICY,
+  PERMISSIONS_POLICY,
+  withSecurityHeaders,
+  X_FRAME_OPTIONS,
+} from "./security-headers";
 
 describe("legacy redirects", () => {
   it("sends login, signup, and privacy-policy to their replacements", () => {
@@ -57,6 +62,7 @@ describe("security headers", () => {
     expect(response.headers.get("x-test")).toBe("1");
     expect(response.headers.get("X-Frame-Options")).toBe(X_FRAME_OPTIONS);
     expect(response.headers.get("Content-Security-Policy")).toBe(CONTENT_SECURITY_POLICY);
+    expect(response.headers.get("Permissions-Policy")).toBe(PERMISSIONS_POLICY);
   });
 
   it("allows the origins this app loads in the browser", () => {
@@ -85,5 +91,6 @@ describe("security headers", () => {
     const text = readFileSync("public/_headers", "utf8");
     expect(text).toContain(`X-Frame-Options: ${X_FRAME_OPTIONS}`);
     expect(text).toContain(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`);
+    expect(text).toContain(`Permissions-Policy: ${PERMISSIONS_POLICY}`);
   });
 });

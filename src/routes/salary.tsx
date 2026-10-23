@@ -17,9 +17,9 @@ export const Route = createFileRoute("/salary")({
         content:
           "Live salary, hiring velocity, and market demand intelligence for every major certification — filterable by role, country, and industry.",
       },
-      { property: "og:url", content: "/salary" },
+      { property: "og:url", content: "https://skilltrack.co.in/salary" },
     ],
-    links: [{ rel: "canonical", href: "/salary" }],
+    links: [{ rel: "canonical", href: "https://skilltrack.co.in/salary" }],
   }),
   component: SalaryPage,
 });
