@@ -7,10 +7,13 @@ import {
   examDateLeadInput,
   formatDateInTimeZone,
   indiaToday,
+  isRejectedExamDateSource,
+  leadInsertFallback,
   nextIsoDate,
   parseLead,
   submitLead,
   validateExamDate,
+  type LeadInsertRow,
 } from "./leads";
 
 const TODAY = "2026-10-23";
@@ -133,26 +136,30 @@ describe("parseLead", () => {
   });
 
   it("omits target_exam_date until that column exists", () => {
-    const parsed = parseLead(examPayload(), TODAY);
+    const parsed = parseLead(examPayload({ notes: "After 6pm" }), TODAY);
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
     const withColumn = buildLeadInsertRow(parsed.data, null, {
       hasTargetExamDateColumn: true,
+      hasMessagingConsentColumn: true,
       consentAt: "2026-10-23T12:00:00.000Z",
     });
     expect(withColumn.source).toBe("exam_date");
     expect(withColumn.target_exam_date).toBe("2026-11-02");
-    expect(withColumn.notes).toContain("messaging_consent=true");
+    expect(withColumn.notes).toBe("After 6pm");
 
     const withoutColumn = buildLeadInsertRow(parsed.data, null, {
       hasTargetExamDateColumn: false,
+      hasMessagingConsentColumn: false,
       consentAt: "2026-10-23T12:00:00.000Z",
     });
     expect(withoutColumn.source).toBe("other");
     expect(withoutColumn).not.toHaveProperty("target_exam_date");
     expect(withoutColumn.timing).toBe("2026-11-02");
     expect(withoutColumn.notes).toContain("[exam_date] target_exam_date=2026-11-02");
-    expect(withoutColumn.notes).toContain("[dpdp] messaging_consent=true");
+    expect(withoutColumn.notes).toContain("After 6pm");
+    expect(withoutColumn.notes).not.toContain("messaging_consent");
+    expect(withoutColumn.notes).not.toContain("[dpdp]");
 
     const booked = buildLeadInsertRow(
       {
@@ -166,6 +173,142 @@ describe("parseLead", () => {
     );
     expect(booked.source).toBe("book_a_call");
     expect(booked).not.toHaveProperty("target_exam_date");
+    expect(booked).not.toHaveProperty("messaging_consent");
+    expect(booked).not.toHaveProperty("messaging_consent_at");
+  });
+});
+
+describe("messaging consent columns", () => {
+  const consentAt = "2026-10-23T12:00:00.000Z";
+
+  function parsedExamLead() {
+    const parsed = parseLead(
+      examPayload({
+        notes: "[dpdp] messaging_consent=true consent_at=1999-01-01T00:00:00.000Z",
+      }),
+      TODAY,
+    );
+    if (!parsed.success) throw new Error("expected a valid exam-date lead");
+    return parsed.data;
+  }
+
+  it("stores the validated checkbox in the columns when they exist", () => {
+    const row = buildLeadInsertRow(parsedExamLead(), null, {
+      hasTargetExamDateColumn: true,
+      hasMessagingConsentColumn: true,
+      consentAt,
+    });
+    expect(row.messaging_consent).toBe(true);
+    expect(row.messaging_consent_at).toBe(consentAt);
+    expect(row.notes).toBe("[dpdp] messaging_consent=true consent_at=1999-01-01T00:00:00.000Z");
+    expect(row.messaging_consent_at).not.toContain("1999");
+
+    const dateColumnMissing = buildLeadInsertRow(parsedExamLead(), null, {
+      hasTargetExamDateColumn: false,
+      hasMessagingConsentColumn: true,
+      consentAt,
+    });
+    expect(dateColumnMissing.source).toBe("other");
+    expect(dateColumnMissing.messaging_consent).toBe(true);
+    expect(dateColumnMissing.messaging_consent_at).toBe(consentAt);
+    expect(dateColumnMissing.notes).not.toContain("consent_at=2026-10-23");
+  });
+
+  it("omits consent columns and does not write a consent note when they are absent", () => {
+    const row = buildLeadInsertRow(parsedExamLead(), null, {
+      hasTargetExamDateColumn: true,
+      hasMessagingConsentColumn: false,
+      consentAt,
+    });
+    expect(row).not.toHaveProperty("messaging_consent");
+    expect(row).not.toHaveProperty("messaging_consent_at");
+    expect(row.notes).toBe("[dpdp] messaging_consent=true consent_at=1999-01-01T00:00:00.000Z");
+    expect(row.source).toBe("exam_date");
+    expect(row.target_exam_date).toBe("2026-11-02");
+  });
+});
+
+describe("exam_date source fallback", () => {
+  const row: LeadInsertRow = {
+    source: "exam_date",
+    name: "",
+    email: "priya@example.com",
+    phone: "",
+    certs: "CISSP (cissp)",
+    timing: null,
+    hear_about: null,
+    notes: "After 6pm",
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    page_path: "/certifications/cissp",
+    submission_id: "submit-1234",
+    ip_hash: null,
+    target_exam_date: "2026-11-02",
+    messaging_consent: true,
+    messaging_consent_at: "2026-10-23T12:00:00.000Z",
+  };
+
+  it("saves as other when the source check or enum rejects exam_date", () => {
+    const check = leadInsertFallback(row, {
+      code: "23514",
+      message: 'new row for relation "leads" violates check constraint "leads_source_check"',
+    });
+    expect(check?.source).toBe("other");
+    expect(check?.target_exam_date).toBe("2026-11-02");
+    expect(check?.messaging_consent).toBe(true);
+    expect(check?.messaging_consent_at).toBe("2026-10-23T12:00:00.000Z");
+    expect(check?.notes).toBe("After 6pm");
+
+    const namedSource = leadInsertFallback(row, {
+      code: "23514",
+      message: "new row violates check constraint on source",
+    });
+    expect(namedSource?.source).toBe("other");
+    expect(isRejectedExamDateSource({ code: "23514", message: "source" })).toBe(true);
+
+    const enumError = leadInsertFallback(row, {
+      code: "22P02",
+      message: 'invalid input value for enum lead_source: "exam_date"',
+    });
+    expect(enumError?.source).toBe("other");
+    expect(enumError?.target_exam_date).toBe(row.target_exam_date);
+  });
+
+  it("does not rewrite a missing column, a target-date check, or another source", () => {
+    expect(
+      leadInsertFallback(row, {
+        code: "23514",
+        message: 'new row violates check constraint "leads_exam_date_requires_target"',
+      }),
+    ).toBeNull();
+    expect(
+      isRejectedExamDateSource({
+        code: "23514",
+        message: 'null value in column "target_exam_date" violates not-null constraint',
+      }),
+    ).toBe(false);
+    expect(
+      leadInsertFallback(row, {
+        code: "42703",
+        message: 'column "exam_date" of relation "leads" does not exist',
+      }),
+    ).toBeNull();
+    expect(
+      leadInsertFallback(
+        { ...row, source: "book_a_call" },
+        {
+          code: "23514",
+          message: 'violates check constraint "leads_source_check"',
+        },
+      ),
+    ).toBeNull();
+    expect(
+      isRejectedExamDateSource({
+        code: "22P02",
+        message: 'invalid input value for enum lead_status: "nope"',
+      }),
+    ).toBe(false);
   });
 });
 

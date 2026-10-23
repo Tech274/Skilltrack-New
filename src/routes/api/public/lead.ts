@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
-import { buildLeadInsertRow, isMissingLeadColumn, parseLead } from "@/lib/leads";
+import {
+  buildLeadInsertRow,
+  isMissingLeadColumn,
+  leadInsertFallback,
+  parseLead,
+} from "@/lib/leads";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -96,22 +101,27 @@ async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow, targetE
   if (sheetError) console.error("[lead] sheet sync failed", sheetError);
 }
 
-let targetExamDateColumnExists: boolean | null = null;
+const presentLeadColumns = new Set<string>();
 
-async function hasTargetExamDateColumn(supabaseAdmin: {
-  from(table: "leads"): {
-    select(columns: string): {
-      limit(count: number): PromiseLike<{ error: { code?: string; message?: string } | null }>;
+type LeadColumnName = "target_exam_date" | "messaging_consent";
+
+async function hasLeadColumn(
+  supabaseAdmin: {
+    from(table: "leads"): {
+      select(columns: LeadColumnName): {
+        limit(count: number): PromiseLike<{ error: { code?: string; message?: string } | null }>;
+      };
     };
-  };
-}): Promise<boolean> {
-  if (targetExamDateColumnExists === true) return true;
-  const { error } = await supabaseAdmin.from("leads").select("target_exam_date").limit(1);
+  },
+  column: LeadColumnName,
+): Promise<boolean> {
+  if (presentLeadColumns.has(column)) return true;
+  const { error } = await supabaseAdmin.from("leads").select(column).limit(1);
   if (!error) {
-    targetExamDateColumnExists = true;
+    presentLeadColumns.add(column);
     return true;
   }
-  if (isMissingLeadColumn(error, "target_exam_date")) return false;
+  if (isMissingLeadColumn(error, column)) return false;
   throw error;
 }
 
@@ -169,19 +179,37 @@ export const Route = createFileRoute("/api/public/lead")({
           }
 
           const hasExamDateColumn =
-            d.source === "exam_date" ? await hasTargetExamDateColumn(supabaseAdmin) : false;
-          const row = buildLeadInsertRow(d, ipHash, {
+            d.source === "exam_date"
+              ? await hasLeadColumn(supabaseAdmin, "target_exam_date")
+              : false;
+          const hasMessagingConsentColumn =
+            d.messaging_consent === true
+              ? await hasLeadColumn(supabaseAdmin, "messaging_consent")
+              : false;
+          let row = buildLeadInsertRow(d, ipHash, {
             hasTargetExamDateColumn: hasExamDateColumn,
+            hasMessagingConsentColumn,
+            consentAt: new Date().toISOString(),
           });
 
-          const { data: inserted, error: insertError } = await supabaseAdmin
+          let { data: inserted, error: insertError } = await supabaseAdmin
             .from("leads")
             .insert(row)
             .select("id")
             .single();
 
           if (insertError) {
-            if (insertError.code === "23505") {
+            const fallback = leadInsertFallback(row, insertError);
+            if (fallback) {
+              row = fallback;
+              const retried = await supabaseAdmin.from("leads").insert(row).select("id").single();
+              inserted = retried.data;
+              insertError = retried.error;
+            }
+          }
+
+          if (insertError || !inserted) {
+            if (insertError?.code === "23505") {
               const { data: existing } = await supabaseAdmin
                 .from("leads")
                 .select("id")
@@ -189,7 +217,7 @@ export const Route = createFileRoute("/api/public/lead")({
                 .maybeSingle();
               if (existing?.id) return json({ ok: true, id: existing.id, duplicate: true });
             }
-            console.error("[lead] insert failed", insertError.code, insertError.message);
+            console.error("[lead] insert failed", insertError?.code, insertError?.message);
             return json(
               { ok: false, error: "We could not save your request. Please try again." },
               500,

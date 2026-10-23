@@ -101,18 +101,7 @@ export function examDateFieldErrors(
   };
 }
 
-const CONSENT_PREFIX = "[dpdp] messaging_consent=true consent_at=";
 const EXAM_DATE_PREFIX = "[exam_date] target_exam_date=";
-
-/** Keep a consent record inside notes when the dedicated columns are not migrated yet. */
-export function notesWithConsent(notes: string | null | undefined, consentAt: string): string {
-  const marker = `${CONSENT_PREFIX}${consentAt}`;
-  const base = (notes ?? "").trim();
-  if (base.includes(CONSENT_PREFIX)) return base.slice(0, 1000);
-  const room = 1000 - marker.length - (base ? 1 : 0);
-  const clipped = base.slice(0, Math.max(0, room)).trimEnd();
-  return (clipped ? `${clipped}\n${marker}` : marker).slice(0, 1000);
-}
 
 /** Keep the exam date in notes when `target_exam_date` is not in the database yet. */
 export function notesWithExamDate(notes: string | null | undefined, examDate: string): string {
@@ -134,6 +123,49 @@ export function isMissingLeadColumn(
   return (
     error.code === "42703" || error.code === "PGRST204" || /column|schema cache/i.test(message)
   );
+}
+
+type LeadWriteError = {
+  code?: string;
+  message?: string;
+  details?: string | null;
+};
+
+function leadErrorText(error: LeadWriteError): string {
+  return `${error.message ?? ""}\n${error.details ?? ""}`;
+}
+
+/**
+ * True when the database rejected the value `exam_date` itself: the source
+ * check constraint or enum has not been migrated yet. A missing column, and
+ * the check that an exam-date lead must have a target date, are different
+ * failures and stay false here.
+ */
+export function isRejectedExamDateSource(error: LeadWriteError | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return false;
+  const text = leadErrorText(error);
+  if (/leads_exam_date_requires_target/i.test(text) || /\btarget_exam_date\b/i.test(text)) {
+    return false;
+  }
+  const checkRejectsSource =
+    error.code === "23514" && (/leads_source_check/i.test(text) || /\bsource\b/i.test(text));
+  const enumRejectsExamDate =
+    (error.code === "22P02" || /invalid input value for enum/i.test(text)) &&
+    text.includes("exam_date");
+  return checkRejectsSource || enumRejectsExamDate;
+}
+
+/**
+ * Same row with source `other` when the database will not accept `exam_date`.
+ * The exam date and consent columns already on the row are kept.
+ */
+export function leadInsertFallback(
+  row: LeadInsertRow,
+  error: LeadWriteError | null | undefined,
+): LeadInsertRow | null {
+  if (row.source !== "exam_date" || !isRejectedExamDateSource(error)) return null;
+  return { ...row, source: "other" };
 }
 
 export function buildLeadSchema(today: string) {
@@ -247,6 +279,8 @@ export type LeadInsertRow = {
   submission_id: string;
   ip_hash: string | null;
   target_exam_date?: string;
+  messaging_consent?: boolean;
+  messaging_consent_at?: string;
 };
 
 const emptyToNull = (value: string) => (value ? value : null);
@@ -255,6 +289,9 @@ const emptyToNull = (value: string) => (value ? value : null);
  * Row for the service-role insert. `target_exam_date` is included only when that
  * column already exists. Otherwise the date is kept in timing and notes, and the
  * source stays one the current check constraint allows.
+ * Consent is stored only in `messaging_consent` and `messaging_consent_at`, and
+ * only when those columns exist. The timestamp is the server's, taken from the
+ * validated checkbox, never from visitor notes.
  */
 export function buildLeadInsertRow(
   data: {
@@ -272,12 +309,15 @@ export function buildLeadInsertRow(
     page_path: string;
     submission_id: string;
     target_exam_date: string;
+    messaging_consent?: boolean;
   },
   ipHash: string | null,
-  options: { hasTargetExamDateColumn: boolean; consentAt?: string },
+  options: {
+    hasTargetExamDateColumn: boolean;
+    hasMessagingConsentColumn?: boolean;
+    consentAt?: string;
+  },
 ): LeadInsertRow {
-  const consentAt = options.consentAt ?? new Date().toISOString();
-  const notes = data.source === "exam_date" ? notesWithConsent(data.notes, consentAt) : data.notes;
   const row: LeadInsertRow = {
     source: data.source,
     name: data.name,
@@ -286,7 +326,7 @@ export function buildLeadInsertRow(
     certs: emptyToNull(data.certs),
     timing: emptyToNull(data.timing),
     hear_about: emptyToNull(data.hear_about),
-    notes: emptyToNull(notes),
+    notes: emptyToNull(data.notes),
     utm_source: emptyToNull(data.utm_source),
     utm_medium: emptyToNull(data.utm_medium),
     utm_campaign: emptyToNull(data.utm_campaign),
@@ -294,6 +334,10 @@ export function buildLeadInsertRow(
     submission_id: data.submission_id,
     ip_hash: ipHash,
   };
+  if (options.hasMessagingConsentColumn && data.messaging_consent === true) {
+    row.messaging_consent = true;
+    row.messaging_consent_at = options.consentAt ?? new Date().toISOString();
+  }
   if (data.source !== "exam_date") return row;
   if (options.hasTargetExamDateColumn) {
     row.target_exam_date = data.target_exam_date;
@@ -301,7 +345,7 @@ export function buildLeadInsertRow(
   }
   row.source = "other";
   row.timing = data.target_exam_date;
-  row.notes = notesWithExamDate(notes, data.target_exam_date);
+  row.notes = notesWithExamDate(data.notes, data.target_exam_date);
   return row;
 }
 

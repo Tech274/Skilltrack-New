@@ -1079,6 +1079,8 @@ export type Database = {
           hear_about: string | null
           id: string
           ip_hash: string | null
+          messaging_consent: boolean | null
+          messaging_consent_at: string | null
           name: string
           notes: string | null
           page_path: string | null
@@ -1101,6 +1103,8 @@ export type Database = {
           hear_about?: string | null
           id?: string
           ip_hash?: string | null
+          messaging_consent?: boolean | null
+          messaging_consent_at?: string | null
           name: string
           notes?: string | null
           page_path?: string | null
@@ -1123,6 +1127,8 @@ export type Database = {
           hear_about?: string | null
           id?: string
           ip_hash?: string | null
+          messaging_consent?: boolean | null
+          messaging_consent_at?: string | null
           name?: string
           notes?: string | null
           page_path?: string | null
