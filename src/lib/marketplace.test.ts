@@ -18,7 +18,6 @@ import {
   marketplaceOemLogoPath,
   MARKETPLACE_CERTS,
   MARKETPLACE_OEM_KEYS,
-  MARKETPLACE_PRICE_INR,
   MARKETPLACE_WHATSAPP_NUMBER_PLACEHOLDER,
   marketplaceWhatsAppUrl,
   oemKeyForCert,
@@ -335,7 +334,6 @@ describe("marketplace prices and bundles", () => {
         "Labs",
       ]);
       expect(bundle.price).toBeNull();
-      expect(bundle.price).not.toEqual({ amount: MARKETPLACE_PRICE_INR, currency: "INR" });
     }
   });
 
@@ -376,13 +374,14 @@ describe("marketplace prices and bundles", () => {
     expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
   });
 
-  it("treats the 999 seed default as missing, including inside bundle totals", () => {
-    expect(listedSkuPrice({ priceInr: 999, currency: "INR" })).toBeNull();
+  it("lists a numeric price, including 999, and treats only a missing price as Price on request", () => {
+    expect(listedSkuPrice({ priceInr: 999, currency: "INR" })).toEqual({
+      amount: 999,
+      currency: "INR",
+    });
     expect(listedSkuPrice({ priceInr: null, currency: "INR" })).toBeNull();
-    expect(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR })).toBeNull();
-    expect(
-      formatListedPrice(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR, currency: "INR" })),
-    ).toBe("Price on request");
+    expect(listedSkuPrice({ priceInr: undefined })).toBeNull();
+    expect(formatListedPrice(null)).toBe("Price on request");
     expect(listedSkuPrice({ priceInr: 1299, currency: "INR" })).toEqual({
       amount: 1299,
       currency: "INR",
@@ -391,21 +390,23 @@ describe("marketplace prices and bundles", () => {
     const catalog = buildStaticMarketplaceCatalog();
     catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
       ...sku,
-      priceInr: MARKETPLACE_PRICE_INR,
+      priceInr: 999,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 3996, currency: "INR" });
+    expect(formatListedPrice(prepBundleForCert("aws-saa", catalog)?.price ?? null)).toBe(
+      formatListedPrice({ amount: 3996, currency: "INR" }),
+    );
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
+      ...sku,
+      priceInr: index === 0 ? undefined : 400,
       currency: "INR",
     }));
     expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
     expect(formatListedPrice(prepBundleForCert("aws-saa", catalog)?.price ?? null)).toBe(
       "Price on request",
     );
-    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe("Price on request");
-
-    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
-      ...sku,
-      priceInr: index === 0 ? MARKETPLACE_PRICE_INR : 400,
-      currency: "INR",
-    }));
-    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
 
     catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
       ...sku,

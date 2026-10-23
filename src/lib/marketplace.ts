@@ -33,7 +33,7 @@ export type PrepSkuDef = {
   currency?: string;
   /**
    * Stored prep price. Public pages show this amount only.
-   * They do not fall back to MARKETPLACE_PRICE_INR — that constant is the admin seed placeholder.
+   * A missing or null price is "Price on request".
    */
   priceInr?: number;
 };
@@ -390,13 +390,6 @@ const CERT_PREP_SKUS: Record<MarketplaceCertKey, PrepSkuDef[]> = {
 /** Flat list of shared SKU type metadata (titles) — prefer getPrepSku for cert copy. */
 export const PREP_SKU_TYPES: PrepSkuDef[] = CERT_PREP_SKUS["aws-saa"];
 
-/**
- * Historical marketplace price placeholder (the old `price_inr` default of 999).
- * Not a quoted prep price. Public catalogue pages treat this amount as missing.
- * The column is nullable with no default; rows that still store 999 are left as-is.
- */
-export const MARKETPLACE_PRICE_INR = 999;
-
 export const PRICE_ON_REQUEST_LABEL = "Price on request";
 
 export type ListedPrice = {
@@ -406,14 +399,13 @@ export type ListedPrice = {
 
 /**
  * A quoted prep price stored on the SKU.
- * Missing, null, non-finite, and placeholder amounts (MARKETPLACE_PRICE_INR) are not listed.
+ * Missing, null, and non-finite amounts are not listed.
  */
 export function listedSkuPrice(sku: {
   priceInr?: number | null;
   currency?: string | null;
 }): ListedPrice | null {
   if (typeof sku.priceInr !== "number" || !Number.isFinite(sku.priceInr)) return null;
-  if (sku.priceInr === MARKETPLACE_PRICE_INR) return null;
   const currency = (sku.currency || "INR").trim().toUpperCase() || "INR";
   return { amount: sku.priceInr, currency };
 }
@@ -461,8 +453,8 @@ export type PrepBundleOffer = {
   skuTypes: PrepSkuType[];
   includes: string[];
   /**
-   * Sum of quoted SKU prices when every included SKU has a real, non-placeholder
-   * price in the same currency. Otherwise null (shown as Price on request).
+   * Sum of quoted SKU prices when every included SKU has a price in the same currency.
+   * Otherwise null (shown as Price on request).
    */
   price: ListedPrice | null;
 };
@@ -470,7 +462,7 @@ export type PrepBundleOffer = {
 /**
  * A bundle is the prep SKUs already listed for one certification (at least two).
  * No bundle price is stored. The amount is the sum of quoted SKU prices only when
- * every included SKU has a real, non-placeholder price in the same currency.
+ * every included SKU has a price in the same currency.
  */
 export function prepBundleForCert(
   certKey: string,

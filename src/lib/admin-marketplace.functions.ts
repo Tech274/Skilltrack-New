@@ -12,7 +12,6 @@ import {
   CERT_TO_OEM,
   MARKETPLACE_CERTS,
   MARKETPLACE_OEMS,
-  MARKETPLACE_PRICE_INR,
   PREP_SKU_TYPE_KEYS,
   listPrepSkus,
   marketplaceOemLogoPath,
@@ -279,12 +278,10 @@ export const seedMarketplaceCatalog = createServerFn({ method: "POST" })
       const cert_id = certIdByKey.get(cert.key);
       if (!cert_id) continue;
       for (const sku of listPrepSkus(cert.key)) {
-        // Static SKUs have no quote. Omit price_inr so a new row stores NULL and
-        // a conflict update leaves the existing amount (including a stored 999) alone.
+        // Omit price_inr when the static SKU has no quote. Inserts store NULL, and
+        // a conflict update leaves the stored amount alone.
         const quoted =
-          typeof sku.priceInr === "number" &&
-          Number.isFinite(sku.priceInr) &&
-          sku.priceInr !== MARKETPLACE_PRICE_INR
+          typeof sku.priceInr === "number" && Number.isFinite(sku.priceInr)
             ? sku.priceInr
             : undefined;
         const { error } = await supabaseAdmin.from("marketplace_skus").upsert(

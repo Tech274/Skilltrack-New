@@ -52,7 +52,7 @@ export type MarketplaceSkuRow = {
   fulfilled_on_href: string | null;
 };
 
-/** Keep a stored amount, including the 999 placeholder. NULL is missing, not 0. */
+/** Keep a stored numeric amount. NULL is missing, not 0. */
 function priceAmountFromRow(value: number | string | null | undefined): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
   const price = typeof value === "number" ? value : Number(value);
