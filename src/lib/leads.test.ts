@@ -355,13 +355,30 @@ describe("submitLead", () => {
 });
 
 describe("exam date lead migration", () => {
-  const sql = readFileSync("drizzle/migrations/20261023193000_lead_target_exam_date.sql", "utf8");
+  const sql = readFileSync("drizzle/migrations/0005_lead_target_exam_date.sql", "utf8");
 
   it("adds a nullable exam date column and the exam_date source", () => {
     expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS target_exam_date date/i);
     expect(sql).not.toMatch(/target_exam_date date\s+NOT NULL/i);
     expect(sql).toContain("'exam_date'");
     expect(sql).not.toMatch(/0004_lead_exam_date/);
+  });
+
+  it("is drizzle journal slot 5, after the messaging consent migration", () => {
+    const journal = JSON.parse(readFileSync("drizzle/migrations/meta/_journal.json", "utf8"));
+    expect(journal.entries[4]).toMatchObject({
+      idx: 4,
+      version: "7",
+      tag: "0004_leads_messaging_consent",
+      breakpoints: true,
+    });
+    expect(journal.entries[5]).toMatchObject({
+      idx: 5,
+      version: "7",
+      when: 1792779180000,
+      tag: "0005_lead_target_exam_date",
+      breakpoints: true,
+    });
   });
 
   it("does not grant anonymous inserts", () => {

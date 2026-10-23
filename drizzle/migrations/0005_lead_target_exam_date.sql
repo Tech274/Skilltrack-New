@@ -3,7 +3,8 @@
 -- Browser clients cannot write leads. The server endpoint uses the service
 -- role, which bypasses row-level security. This file does not change grants
 -- or policies.
--- Named with a timestamp so it does not collide with 0004_leads_messaging_consent.sql.
+-- Journal slot 0005, after 0004_leads_messaging_consent. Apply only once that
+-- consent migration is on production.
 
 ALTER TABLE public.leads
   ADD COLUMN IF NOT EXISTS target_exam_date date;
