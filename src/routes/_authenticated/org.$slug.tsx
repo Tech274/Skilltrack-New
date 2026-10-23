@@ -34,6 +34,9 @@ function OrgLayout() {
                 <img
                   src={brand.data.logo_light_url}
                   alt={`${q.data?.name ?? slug} logo`}
+                  width={40}
+                  height={40}
+                  decoding="async"
                   className="h-10 w-10 rounded-lg object-contain bg-white p-1 dark:hidden"
                 />
               ) : (
@@ -45,6 +48,9 @@ function OrgLayout() {
                 <img
                   src={brand.data.logo_dark_url}
                   alt={`${q.data?.name ?? slug} logo`}
+                  width={40}
+                  height={40}
+                  decoding="async"
                   className="h-10 w-10 rounded-lg object-contain bg-neutral-900 p-1 hidden dark:block"
                 />
               ) : (

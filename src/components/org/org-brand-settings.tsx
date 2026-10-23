@@ -111,7 +111,15 @@ function LogoSlot({
         }}
       >
         {url ? (
-          <img src={url} alt={title} className="max-h-24 max-w-[80%] object-contain" />
+          <img
+            src={url}
+            alt={title}
+            width={160}
+            height={96}
+            loading="lazy"
+            decoding="async"
+            className="max-h-24 max-w-[80%] object-contain"
+          />
         ) : (
           <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
             <ImageIcon size={20} />
