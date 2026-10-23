@@ -7,7 +7,9 @@ describe("admin nav", () => {
   it("lists one leads entry and keeps the sales pipeline as the target", () => {
     expect(nav.match(/label:\s*"Leads"/g) ?? []).toHaveLength(1);
     expect(nav).not.toContain('label: "Sales Leads"');
-    expect(nav).toContain('to: "/admin/sales-leads", label: "Leads", icon: Users, leadAccess: true');
+    expect(nav).toContain(
+      'to: "/admin/sales-leads", label: "Leads", icon: Users, leadAccess: true',
+    );
     expect(nav).toContain("if (it.leadAccess) return Boolean(who.leadAccess)");
     expect(nav).not.toContain('to: "/admin/leads"');
   });
@@ -25,7 +27,7 @@ describe("lead access", () => {
     const src = readFileSync("src/lib/admin-leads.functions.ts", "utf8");
     const list = src.slice(src.indexOf("export const listSavedLeads"));
     expect(list.indexOf("requireLeadAccess")).toBeGreaterThan(-1);
-    expect(list.indexOf("requireLeadAccess")).toBeLessThan(list.indexOf(".from(\"leads\")"));
+    expect(list.indexOf("requireLeadAccess")).toBeLessThan(list.indexOf('.from("leads")'));
     expect(src).toContain("export const guardLeadAccess");
     const sales = readFileSync("src/lib/sales-leads.functions.ts", "utf8");
     expect(sales).toContain("requireLeadAccess");

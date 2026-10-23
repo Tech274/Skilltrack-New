@@ -92,8 +92,14 @@ function SalesLeadsPage() {
   });
 
   const denied =
-    query.isError && String((query.error as Error).message).toLowerCase().includes("lead access");
-  const rows: SalesLead[] = denied ? [] : (query.data?.rows ?? []);
+    query.isError &&
+    String((query.error as Error).message)
+      .toLowerCase()
+      .includes("lead access");
+  const rows = useMemo<SalesLead[]>(
+    () => (denied ? [] : (query.data?.rows ?? [])),
+    [denied, query.data],
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
