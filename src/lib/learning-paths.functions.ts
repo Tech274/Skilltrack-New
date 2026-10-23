@@ -1,3 +1,4 @@
+import { recordAdminAudit, snapshotRow } from "@/lib/admin-audit.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -118,6 +119,9 @@ export const saveLearningPath = createServerFn({ method: "POST" })
       created_by: context.userId,
     };
     let pathId = data.id;
+    const before = pathId
+      ? await snapshotRow(supabaseAdmin, "learning_paths", pathId, "id, title, status")
+      : null;
     if (pathId) {
       const { error } = await supabaseAdmin.from("learning_paths").update(payload).eq("id", pathId);
       if (error) throw new Error(error.message);
@@ -127,6 +131,15 @@ export const saveLearningPath = createServerFn({ method: "POST" })
       pathId = row.id as string;
     }
     await writeVersion(supabaseAdmin, pathId!, data.org_id ?? null, context.userId, snapshotOf(payload), data.version_label ?? null);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learning_path.save",
+      targetTable: "learning_paths",
+      targetId: pathId,
+      summary: data.title,
+      before,
+      after: { title: data.title, status: data.status },
+    });
     return { id: pathId! };
   });
 
@@ -136,8 +149,17 @@ export const deleteLearningPath = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdminOrOrgManager(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "learning_paths", data.id, "id, title, status");
     const { error } = await supabaseAdmin.from("learning_paths").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learning_path.delete",
+      targetTable: "learning_paths",
+      targetId: data.id,
+      summary: typeof before?.title === "string" ? before.title : null,
+      before,
+    });
     return { ok: true };
   });
 
@@ -212,5 +234,13 @@ export const rollbackPathVersion = createServerFn({ method: "POST" })
     }).eq("id", data.path_id);
     if (error) throw new Error(error.message);
     await writeVersion(supabaseAdmin, data.path_id, path.org_id ?? null, context.userId, snap, data.label ?? `Rollback to v${(ver as any).version_number ?? ""}`);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learning_path.rollback",
+      targetTable: "learning_paths",
+      targetId: data.path_id,
+      summary: data.label ?? data.version_id,
+      after: { version_id: data.version_id, title: snap.title, status: snap.status },
+    });
     return { ok: true };
   });

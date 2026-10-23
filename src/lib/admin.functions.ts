@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth.server";
+import { recordAdminAudit } from "@/lib/admin-audit.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -169,6 +170,14 @@ export const grantUserRole = createServerFn({ method: "POST" })
       role: data.role,
       action: "grant",
     });
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: actor.id,
+      action: "user.role_grant",
+      targetTable: "user_roles",
+      targetId: data.userId,
+      summary: data.role,
+      after: { role: data.role },
+    });
     return { ok: true };
   });
 
@@ -202,6 +211,14 @@ export const revokeUserRole = createServerFn({ method: "POST" })
       role: data.role,
       action: "revoke",
     });
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: actor.id,
+      action: "user.role_revoke",
+      targetTable: "user_roles",
+      targetId: data.userId,
+      summary: data.role,
+      before: { role: data.role },
+    });
     return { ok: true };
   });
 
@@ -219,6 +236,13 @@ export const deleteUser = createServerFn({ method: "POST" })
     }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "user.delete",
+      targetTable: "auth.users",
+      targetId: data.userId,
+      summary: "deleted user",
+    });
     return { ok: true };
   });
 

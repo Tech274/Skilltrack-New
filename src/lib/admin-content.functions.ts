@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth.server";
+import { recordAdminAudit, snapshotRow } from "@/lib/admin-audit.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -77,13 +78,31 @@ export const upsertCertification = createServerFn({ method: "POST" })
     const payload: any = { ...data, created_by: context.userId };
     if (payload.thumbnail_url === "") payload.thumbnail_url = null;
     if (data.id) {
+      const before = await snapshotRow(supabaseAdmin, "certifications_catalog", data.id, "id, slug, name, status");
       const { id, ...rest } = payload;
       const { error } = await supabaseAdmin.from("certifications_catalog").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "certification.update",
+        targetTable: "certifications_catalog",
+        targetId: id,
+        summary: data.name,
+        before,
+        after: { slug: data.slug, name: data.name },
+      });
       return { id };
     }
     const { data: row, error } = await supabaseAdmin.from("certifications_catalog").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "certification.create",
+      targetTable: "certifications_catalog",
+      targetId: row.id,
+      summary: data.name,
+      after: { slug: data.slug, name: data.name },
+    });
     return { id: row.id };
   });
 
@@ -94,8 +113,18 @@ export const setCertificationStatus = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "certifications_catalog", data.id, "id, slug, name, status");
     const { error } = await supabaseAdmin.from("certifications_catalog").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "certification.status",
+      targetTable: "certifications_catalog",
+      targetId: data.id,
+      summary: data.status,
+      before,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 
@@ -106,8 +135,17 @@ export const deleteCertification = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "certifications_catalog", data.id, "id, slug, name, status");
     const { error } = await supabaseAdmin.from("certifications_catalog").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "certification.delete",
+      targetTable: "certifications_catalog",
+      targetId: data.id,
+      summary: typeof before?.name === "string" ? before.name : null,
+      before,
+    });
     return { ok: true };
   });
 
@@ -168,13 +206,31 @@ export const upsertResource = createServerFn({ method: "POST" })
     if (payload.external_url === "") payload.external_url = null;
     if (payload.thumbnail_url === "") payload.thumbnail_url = null;
     if (data.id) {
+      const before = await snapshotRow(supabaseAdmin, "study_resources", data.id, "id, title, status, access_tier");
       const { id, ...rest } = payload;
       const { error } = await supabaseAdmin.from("study_resources").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "resource.update",
+        targetTable: "study_resources",
+        targetId: id,
+        summary: data.title,
+        before,
+        after: { title: data.title, access_tier: data.access_tier },
+      });
       return { id };
     }
     const { data: row, error } = await supabaseAdmin.from("study_resources").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "resource.create",
+      targetTable: "study_resources",
+      targetId: row.id,
+      summary: data.title,
+      after: { title: data.title, access_tier: data.access_tier },
+    });
     return { id: row.id };
   });
 
@@ -185,8 +241,18 @@ export const setResourceStatus = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "study_resources", data.id, "id, title, status");
     const { error } = await supabaseAdmin.from("study_resources").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "resource.status",
+      targetTable: "study_resources",
+      targetId: data.id,
+      summary: data.status,
+      before,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 
@@ -201,8 +267,17 @@ export const deleteResource = createServerFn({ method: "POST" })
     if (existing?.storage_path) {
       await supabaseAdmin.storage.from("content-files").remove([existing.storage_path]);
     }
+    const before = await snapshotRow(supabaseAdmin, "study_resources", data.id, "id, title, status");
     const { error } = await supabaseAdmin.from("study_resources").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "resource.delete",
+      targetTable: "study_resources",
+      targetId: data.id,
+      summary: typeof before?.title === "string" ? before.title : null,
+      before,
+    });
     return { ok: true };
   });
 
@@ -298,13 +373,31 @@ export const upsertMockExam = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data, created_by: context.userId };
     if (data.id) {
+      const before = await snapshotRow(supabaseAdmin, "mock_exams", data.id, "id, title, status");
       const { id, ...rest } = payload;
       const { error } = await supabaseAdmin.from("mock_exams").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "mock_exam.update",
+        targetTable: "mock_exams",
+        targetId: id,
+        summary: data.title,
+        before,
+        after: { title: data.title },
+      });
       return { id };
     }
     const { data: row, error } = await supabaseAdmin.from("mock_exams").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "mock_exam.create",
+      targetTable: "mock_exams",
+      targetId: row.id,
+      summary: data.title,
+      after: { title: data.title },
+    });
     return { id: row.id };
   });
 
@@ -320,8 +413,18 @@ export const setMockExamStatus = createServerFn({ method: "POST" })
       const { count } = await supabaseAdmin.from("mock_exam_questions").select("id", { count: "exact", head: true }).eq("exam_id", data.id);
       if (!count || count === 0) throw new Error("Add at least one question before publishing.");
     }
+    const before = await snapshotRow(supabaseAdmin, "mock_exams", data.id, "id, title, status");
     const { error } = await supabaseAdmin.from("mock_exams").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "mock_exam.status",
+      targetTable: "mock_exams",
+      targetId: data.id,
+      summary: data.status,
+      before,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 
@@ -332,8 +435,17 @@ export const deleteMockExam = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "mock_exams", data.id, "id, title, status");
     const { error } = await supabaseAdmin.from("mock_exams").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "mock_exam.delete",
+      targetTable: "mock_exams",
+      targetId: data.id,
+      summary: typeof before?.title === "string" ? before.title : null,
+      before,
+    });
     return { ok: true };
   });
 
@@ -367,16 +479,36 @@ export const upsertQuestion = createServerFn({ method: "POST" })
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data };
+    let questionId = data.id ?? null;
     if (data.id) {
+      const before = await snapshotRow(supabaseAdmin, "mock_exam_questions", data.id, "id, exam_id, question_type, marks");
       const { id, ...rest } = payload;
       const { error } = await supabaseAdmin.from("mock_exam_questions").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "mock_exam_question.upsert",
+        targetTable: "mock_exam_questions",
+        targetId: id,
+        summary: data.question_text.slice(0, 120),
+        before,
+        after: { exam_id: data.exam_id, question_type: data.question_type },
+      });
     } else {
-      const { error } = await supabaseAdmin.from("mock_exam_questions").insert(payload);
+      const { data: row, error } = await supabaseAdmin.from("mock_exam_questions").insert(payload).select("id").single();
       if (error) throw new Error(error.message);
+      questionId = row.id;
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "mock_exam_question.upsert",
+        targetTable: "mock_exam_questions",
+        targetId: row.id,
+        summary: data.question_text.slice(0, 120),
+        after: { exam_id: data.exam_id, question_type: data.question_type },
+      });
     }
     await recomputeExamTotals(supabaseAdmin, data.exam_id);
-    return { ok: true };
+    return { ok: true, id: questionId };
   });
 
 export const deleteQuestion = createServerFn({ method: "POST" })
@@ -386,8 +518,17 @@ export const deleteQuestion = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "mock_exam_questions", data.id, "id, exam_id, question_type");
     const { error } = await supabaseAdmin.from("mock_exam_questions").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "mock_exam_question.delete",
+      targetTable: "mock_exam_questions",
+      targetId: data.id,
+      summary: data.exam_id,
+      before,
+    });
     await recomputeExamTotals(supabaseAdmin, data.exam_id);
     return { ok: true };
   });
