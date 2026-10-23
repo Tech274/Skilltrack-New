@@ -4,6 +4,7 @@
  * Write: admin / content_admin / super.
  * Soft-deactivate preferred over hard delete.
  */
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -47,6 +48,7 @@ async function assertWrite(supabase: any, userId: string) {
 export const listMarketplaceCatalogAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [oems, certs, skus] = await Promise.all([
@@ -74,6 +76,7 @@ export const upsertMarketplaceOem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(oemInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { id, ...rest } = data;
@@ -95,6 +98,7 @@ export const setMarketplaceOemActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), active: z.boolean() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -122,6 +126,7 @@ export const upsertMarketplaceCert = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(certInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data };
@@ -146,6 +151,7 @@ export const setMarketplaceCertActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), active: z.boolean() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -178,6 +184,7 @@ export const upsertMarketplaceSku = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(skuInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data };
@@ -210,6 +217,7 @@ export const setMarketplaceSkuActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), active: z.boolean() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -224,6 +232,7 @@ export const setMarketplaceSkuActive = createServerFn({ method: "POST" })
 export const seedMarketplaceCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

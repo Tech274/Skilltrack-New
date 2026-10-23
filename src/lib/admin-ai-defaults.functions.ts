@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -92,6 +93,7 @@ export async function readEffectiveAiDefaults(orgId: string | null): Promise<Eff
 export const getAiDefaults = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertAdmin(context);
     return await readAiDefaults();
   });
@@ -100,6 +102,7 @@ export const setAiDefaults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: AiDefaults) => Defaults.parse(d))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -130,6 +133,12 @@ export const getOrgAiDefaults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { org_id: string }) => z.object({ org_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    try {
+      await requireAdmin(context.userId);
+    } catch (err) {
+      // Org executives manage their own org without a platform admin role.
+      if (!(err instanceof Error) || !err.message.startsWith("Forbidden")) throw err;
+    }
     await assertOrgManager(context, data.org_id);
     const eff = await readEffectiveAiDefaults(data.org_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -142,6 +151,12 @@ export const setOrgAiDefaults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof OrgOverride>) => OrgOverride.parse(d))
   .handler(async ({ data, context }) => {
+    try {
+      await requireAdmin(context.userId);
+    } catch (err) {
+      // Org executives manage their own org without a platform admin role.
+      if (!(err instanceof Error) || !err.message.startsWith("Forbidden")) throw err;
+    }
     await assertOrgManager(context, data.org_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("ai_org_defaults").upsert({
@@ -167,6 +182,12 @@ export const clearOrgAiDefaults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { org_id: string }) => z.object({ org_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    try {
+      await requireAdmin(context.userId);
+    } catch (err) {
+      // Org executives manage their own org without a platform admin role.
+      if (!(err instanceof Error) || !err.message.startsWith("Forbidden")) throw err;
+    }
     await assertOrgManager(context, data.org_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("ai_org_defaults").delete().eq("org_id", data.org_id);
@@ -185,6 +206,7 @@ export const clearOrgAiDefaults = createServerFn({ method: "POST" })
 export const listOrgAiDefaults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: orgs, error: oErr } = await supabaseAdmin

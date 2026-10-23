@@ -1,6 +1,6 @@
+import { requireLeadAccess } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { z } from "zod";
 
 /** Sheet Apps Script URL — same server secret the lead endpoint uses. */
@@ -35,15 +35,6 @@ export type SalesLead = {
   status: string;
 };
 
-async function assertSalesAccess(supabase: any, userId: string) {
-  const isSuper = await isSuperAdminUser(userId);
-  if (isSuper) return;
-  const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  const list = (roles ?? []).map((r: { role: string }) => r.role);
-  const allowed = ["admin", "operations_admin", "finance_admin", "support_admin"];
-  if (!list.some((r: string) => allowed.includes(r))) throw new Error("Forbidden");
-}
-
 function sheetToken() {
   return process.env["LEAD_SYNC_TOKEN"] ?? process.env["SALES_SHEET_TOKEN"] ?? "";
 }
@@ -75,7 +66,7 @@ async function callSheet(params: Record<string, string>) {
 export const listSalesLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertSalesAccess(context.supabase, context.userId);
+    await requireLeadAccess(context.userId);
     const json: any = await callSheet({ action: "read" });
     if (json?.ok === false) throw new Error(String(json.error ?? "Sheet read failed"));
     const rows: SalesLead[] = (json?.rows ?? json ?? []).map((r: any, i: number) => ({
@@ -108,7 +99,7 @@ export const updateSalesLeadStatus = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
-    await assertSalesAccess(context.supabase, context.userId);
+    await requireLeadAccess(context.userId);
     const json: any = await callSheet({
       action: "updateStatus",
       row: String(data.row),

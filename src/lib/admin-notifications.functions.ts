@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { formatInvoiceAmount } from "@/lib/invoice-currency";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
@@ -24,6 +25,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
     limit: z.number().min(1).max(200).default(50),
   }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertAnyAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin
@@ -47,6 +49,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid().optional(), all: z.boolean().optional() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date().toISOString();
     if (data.all) {
@@ -75,6 +78,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
 export const runReminderScan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
     await assertAnyAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { notify, getAdminRecipientIds } = await import("@/lib/admin-notify.server");

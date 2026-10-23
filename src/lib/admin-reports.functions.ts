@@ -4,6 +4,7 @@
 //   getAdminReports     -> reports.view
 //   exportAdminReportsCsv -> reports.export
 
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -37,6 +38,7 @@ export const getAdminReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { from?: string; to?: string }) => rangeInput.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const { assertPermission } = await import("@/lib/admin-auth.server");
     await assertPermission(context.userId, "reports.view");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -147,6 +149,7 @@ export const exportAdminReportsCsv = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { from?: string; to?: string }) => rangeInput.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const { assertPermission } = await import("@/lib/admin-auth.server");
     await assertPermission(context.userId, "reports.export");
     const report = await getAdminReports({ data });
@@ -189,6 +192,7 @@ export const listSubscribers = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     const { assertPermission } = await import("@/lib/admin-auth.server");
     await assertPermission(context.userId, "subscribers.view");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

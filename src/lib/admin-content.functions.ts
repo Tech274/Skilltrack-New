@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -33,6 +34,7 @@ export const listCertifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ status: z.string().optional(), search: z.string().optional() }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin.from("certifications_catalog").select("*").order("created_at", { ascending: false });
@@ -69,6 +71,7 @@ export const upsertCertification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(certInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data, created_by: context.userId };
@@ -88,6 +91,7 @@ export const setCertificationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["draft", "published"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("certifications_catalog").update({ status: data.status }).eq("id", data.id);
@@ -99,6 +103,7 @@ export const deleteCertification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("certifications_catalog").delete().eq("id", data.id);
@@ -117,6 +122,7 @@ export const listResources = createServerFn({ method: "GET" })
     certification_slug: z.string().optional(), search: z.string().optional(),
   }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin.from("study_resources").select("*").order("created_at", { ascending: false });
@@ -155,6 +161,7 @@ export const upsertResource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(resourceInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data, created_by: context.userId };
@@ -175,6 +182,7 @@ export const setResourceStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["draft","published"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("study_resources").update({ status: data.status }).eq("id", data.id);
@@ -186,6 +194,7 @@ export const deleteResource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existing } = await supabaseAdmin.from("study_resources").select("storage_path").eq("id", data.id).maybeSingle();
@@ -208,6 +217,7 @@ export const createUploadUrl = createServerFn({ method: "POST" })
     folder: z.enum(["resources","thumbnails","exam-assets"]).default("resources"),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const safe = data.filename.replace(/[^a-zA-Z0-9._-]+/g, "_");
@@ -221,6 +231,7 @@ export const getSignedDownloadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ path: z.string().min(1), expires_in: z.number().int().min(60).max(3600).default(600) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage.from("content-files").createSignedUrl(data.path, data.expires_in);
@@ -236,6 +247,7 @@ export const listMockExams = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ status: z.string().optional(), search: z.string().optional() }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let q = supabaseAdmin.from("mock_exams").select("*").order("created_at", { ascending: false });
@@ -253,6 +265,7 @@ export const getMockExam = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: exam, error } = await supabaseAdmin.from("mock_exams").select("*").eq("id", data.id).maybeSingle();
@@ -280,6 +293,7 @@ export const upsertMockExam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(examInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data, created_by: context.userId };
@@ -298,6 +312,7 @@ export const setMockExamStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["draft","published"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Refuse to publish empty exams
@@ -314,6 +329,7 @@ export const deleteMockExam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("mock_exams").delete().eq("id", data.id);
@@ -347,6 +363,7 @@ export const upsertQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(questionInput)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data };
@@ -366,6 +383,7 @@ export const deleteQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), exam_id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("mock_exam_questions").delete().eq("id", data.id);

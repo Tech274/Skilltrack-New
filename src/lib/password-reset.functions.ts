@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -10,8 +11,7 @@ export const resendPasswordReset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => resendSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { assertAdminOrSuper } = await import("@/lib/admin-auth.server");
-    await assertAdminOrSuper(context.userId);
+    await requireAdmin(context.userId);
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

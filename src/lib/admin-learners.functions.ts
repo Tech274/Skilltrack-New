@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -30,6 +31,7 @@ export const listLearners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ search: z.string().optional(), status: z.enum(["all","active","disabled"]).optional() }).partial().optional())
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -90,6 +92,7 @@ export const getLearner = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profile } = await supabaseAdmin.from("profiles").select("*").eq("id", data.id).maybeSingle();
@@ -120,6 +123,7 @@ export const createLearner = createServerFn({ method: "POST" })
     send_invite: z.boolean().default(true),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -167,6 +171,7 @@ export const updateLearner = createServerFn({ method: "POST" })
     timezone: z.string().max(60).optional().nullable(),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { id, ...rest } = data;
@@ -182,6 +187,7 @@ export const setLearnerStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["active","disabled"]) }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const ban_duration = data.status === "disabled" ? "876000h" : "none";
@@ -208,6 +214,7 @@ export const importLearnersCsv = createServerFn({ method: "POST" })
     send_invite: z.boolean().default(true),
   }))
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

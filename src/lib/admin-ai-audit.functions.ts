@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -56,6 +57,7 @@ export const listAiRecsAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(filterSchema)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const f = { page: 1, pageSize: 50, strategy: "all", fallbackOnly: false, errorOnly: false, search: "", ...(data ?? {}) } as Required<NonNullable<z.infer<typeof filterSchema>>>;
@@ -84,6 +86,7 @@ export const exportAiRecsAuditCsv = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(filterSchema)
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const f = { strategy: "all", fallbackOnly: false, errorOnly: false, search: "", ...(data ?? {}) } as Required<NonNullable<z.infer<typeof filterSchema>>>;
