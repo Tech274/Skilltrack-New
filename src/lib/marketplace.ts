@@ -391,8 +391,8 @@ const CERT_PREP_SKUS: Record<MarketplaceCertKey, PrepSkuDef[]> = {
 export const PREP_SKU_TYPES: PrepSkuDef[] = CERT_PREP_SKUS["aws-saa"];
 
 /**
- * Admin seed / form default only. Not a quoted prep price.
- * Public catalogue pages must not display this when `priceInr` is missing.
+ * Admin seed / form default and the `marketplace_skus.price_inr` column default.
+ * Not a quoted prep price. Public catalogue pages treat this amount as missing.
  */
 export const MARKETPLACE_PRICE_INR = 999;
 
@@ -403,9 +403,13 @@ export type ListedPrice = {
   currency: string;
 };
 
-/** A price the catalogue actually stored on the SKU. Missing or non-finite amounts are not listed. */
+/**
+ * A quoted prep price stored on the SKU.
+ * Missing, non-finite, and placeholder amounts (the column default / MARKETPLACE_PRICE_INR) are not listed.
+ */
 export function listedSkuPrice(sku: Pick<PrepSkuDef, "priceInr" | "currency">): ListedPrice | null {
   if (typeof sku.priceInr !== "number" || !Number.isFinite(sku.priceInr)) return null;
+  if (sku.priceInr === MARKETPLACE_PRICE_INR) return null;
   const currency = (sku.currency || "INR").trim().toUpperCase() || "INR";
   return { amount: sku.priceInr, currency };
 }
@@ -452,13 +456,17 @@ export type PrepBundleOffer = {
   title: string;
   skuTypes: PrepSkuType[];
   includes: string[];
-  /** Sum of stored SKU prices when every included SKU has a price in the same currency. */
+  /**
+   * Sum of quoted SKU prices when every included SKU has a real, non-placeholder
+   * price in the same currency. Otherwise null (shown as Price on request).
+   */
   price: ListedPrice | null;
 };
 
 /**
  * A bundle is the prep SKUs already listed for one certification (at least two).
- * No bundle price is stored; the amount is the sum of stored SKU prices, or null.
+ * No bundle price is stored. The amount is the sum of quoted SKU prices only when
+ * every included SKU has a real, non-placeholder price in the same currency.
  */
 export function prepBundleForCert(
   certKey: string,

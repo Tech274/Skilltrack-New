@@ -323,4 +323,42 @@ describe("marketplace prices and bundles", () => {
     }));
     expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
   });
+
+  it("treats the 999 seed default as missing, including inside bundle totals", () => {
+    expect(listedSkuPrice({ priceInr: 999, currency: "INR" })).toBeNull();
+    expect(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR })).toBeNull();
+    expect(
+      formatListedPrice(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR, currency: "INR" })),
+    ).toBe("Price on request");
+    expect(listedSkuPrice({ priceInr: 1299, currency: "INR" })).toEqual({
+      amount: 1299,
+      currency: "INR",
+    });
+
+    const catalog = buildStaticMarketplaceCatalog();
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: MARKETPLACE_PRICE_INR,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+    expect(formatListedPrice(prepBundleForCert("aws-saa", catalog)?.price ?? null)).toBe(
+      "Price on request",
+    );
+    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe("Price on request");
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
+      ...sku,
+      priceInr: index === 0 ? MARKETPLACE_PRICE_INR : 400,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: 400,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 1600, currency: "INR" });
+  });
 });
