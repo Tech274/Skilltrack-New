@@ -7,6 +7,7 @@ import { CalendarCheck, CheckCircle2, Loader2 } from "lucide-react";
 /** Same-origin endpoint that returns real JSON {ok:true|false}. */
 import { submitLead, newSubmissionId } from "@/lib/leads";
 import { getCert } from "@/lib/certifications";
+import { MessagingConsentField } from "@/components/messaging-consent";
 
 function chipForVendor(vendor: string): string {
   const v = vendor.toLowerCase();
@@ -28,6 +29,9 @@ const leadSchema = z.object({
   timing: z.string().nonempty("Please choose a timeframe"),
   hearAbout: z.string().nonempty("Please choose an option"),
   notes: z.string().trim().max(1000).optional(),
+  messagingConsent: z.literal(true, {
+    message: "Please agree to be contacted before submitting.",
+  }),
 });
 
 type Utm = { utm_source: string; utm_medium: string; utm_campaign: string };
@@ -76,6 +80,7 @@ function BookACallPage() {
   const [notes, setNotes] = useState("");
   const [utm, setUtm] = useState<Utm>({ utm_source: "", utm_medium: "", utm_campaign: "" });
   const [companyWebsite, setCompanyWebsite] = useState(""); // honeypot
+  const [messagingConsent, setMessagingConsent] = useState(false);
   const [submissionId] = useState(newSubmissionId);
 
   const [submitting, setSubmitting] = useState(false);
@@ -116,7 +121,16 @@ function BookACallPage() {
     if (!mounted || submitting) return;
     setError(null);
 
-    const parsed = leadSchema.safeParse({ name, email, phone, certs, timing, hearAbout, notes });
+    const parsed = leadSchema.safeParse({
+      name,
+      email,
+      phone,
+      certs,
+      timing,
+      hearAbout,
+      notes,
+      messagingConsent,
+    });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Please check the form");
       return;
@@ -139,6 +153,7 @@ function BookACallPage() {
         page_path: typeof window !== "undefined" ? window.location.pathname : "/book-a-call",
         company_website: companyWebsite,
         submission_id: submissionId,
+        messaging_consent: true,
       });
       if (result.ok) {
         setReference(result.id.slice(0, 8).toUpperCase());
@@ -311,6 +326,8 @@ function BookACallPage() {
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               />
             </Field>
+
+            <MessagingConsentField checked={messagingConsent} onChange={setMessagingConsent} />
 
             {error && (
               <div role="alert" className="rounded-md border border-warning/40 bg-background px-3 py-2 text-xs text-warning">

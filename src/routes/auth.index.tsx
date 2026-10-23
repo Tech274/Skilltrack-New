@@ -5,12 +5,13 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/")({
-  validateSearch: (s: Record<string, unknown>): { next?: string } => {
-    const search: { next?: string } = {};
+  validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "signin" | "signup" } => {
+    const search: { next?: string; mode?: "signin" | "signup" } = {};
     if (typeof s.next === "string" && s.next) search.next = s.next;
+    if (s.mode === "signup" || s.mode === "signin") search.mode = s.mode;
     // Keep the rest of the query string (utm and friends) across /login and /signup.
     for (const [key, value] of Object.entries(s)) {
-      if (key === "next" || typeof value !== "string" || !value) continue;
+      if (key === "next" || key === "mode" || typeof value !== "string" || !value) continue;
       (search as Record<string, string>)[key] = value;
     }
     return search;
@@ -38,10 +39,10 @@ function safeNext(next: string | undefined): string | null {
 function AuthPage() {
   const router = useRouter();
   const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  const { next, mode: modeParam } = Route.useSearch();
   const redirectTo = safeNext(next);
   const [method, setMethod] = useState<Method>("email");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(modeParam === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");

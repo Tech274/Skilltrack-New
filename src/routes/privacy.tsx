@@ -26,7 +26,7 @@ function Privacy() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="text-4xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p className="mt-2 text-xs text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
+      <p className="mt-2 text-xs text-muted-foreground">Last updated: 23 October 2026</p>
 
       <div className="mt-8 space-y-7 text-sm text-muted-foreground">
         <section>
@@ -93,7 +93,52 @@ function Privacy() {
           </p>
         </section>
         <section>
-          <h2 className="text-base font-semibold text-foreground">8. Contact</h2>
+          <h2 className="text-base font-semibold text-foreground">8. WhatsApp and Telegram</h2>
+          <p className="mt-2">
+            Public forms that ask for a phone number or email — including Book a call — include a
+            consent box. It is unchecked until you tick it, and the form cannot be sent without it.
+            Ticking it means SkillTrack-365 may contact you at the phone number or email you gave,
+            including by phone, email, WhatsApp, and Telegram, about that enquiry and certification
+            guidance. We record that you consented and the time you consented. We do not use those
+            channels for that enquiry if you leave the box unticked.
+          </p>
+        </section>
+        <section>
+          <h2 className="text-base font-semibold text-foreground">9. Withdrawing consent</h2>
+          <p className="mt-2">
+            You can withdraw consent at any time. Email{" "}
+            <a className="hover:text-foreground" href="mailto:admin@skilltrack.co.in">
+              admin@skilltrack.co.in
+            </a>{" "}
+            or use the <Link to="/contact" className="underline hover:text-foreground">contact page</Link>{" "}
+            and ask us to stop WhatsApp, Telegram, phone, or email messages. We will stop enquiry
+            and marketing messages on those channels. Withdrawal does not erase messages already
+            sent, and we may keep a short record that you withdrew consent where the law requires it.
+          </p>
+        </section>
+        <section>
+          <h2 className="text-base font-semibold text-foreground">10. Enquiry and consent retention</h2>
+          <p className="mt-2">
+            We keep book-a-call and similar enquiry records, including your messaging consent and
+            its timestamp, for up to 24 months after your last message with us. We keep them longer
+            when a booking, invoice, dispute, or legal duty requires it. Account and learning data
+            follow section 5. You can ask us to delete an enquiry record, subject to those duties.
+          </p>
+        </section>
+        <section>
+          <h2 className="text-base font-semibold text-foreground">11. Grievance officer</h2>
+          <p className="mt-2">
+            Under India&apos;s Digital Personal Data Protection Act, you may raise a grievance about
+            how we handle your personal data. Grievance Officer: [Name to be published]. Email:{" "}
+            <a className="hover:text-foreground" href="mailto:admin@skilltrack.co.in">
+              admin@skilltrack.co.in
+            </a>{" "}
+            with the subject &quot;DPDP grievance&quot;. Postal address: [Address to be published].
+            We will acknowledge the grievance and work to resolve it.
+          </p>
+        </section>
+        <section>
+          <h2 className="text-base font-semibold text-foreground">12. Contact</h2>
           <p className="mt-2">
             Questions about this policy: <a className="hover:text-foreground" href="mailto:admin@skilltrack.co.in">admin@skilltrack.co.in</a>, or via our{" "}
             <Link to="/contact" className="underline hover:text-foreground">contact page</Link>.

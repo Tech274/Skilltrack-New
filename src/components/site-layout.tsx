@@ -180,6 +180,13 @@ export function SiteHeader() {
                 Sign in
               </Link>
               <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-elevated"
+              >
+                Sign up
+              </Link>
+              <Link
                 to="/assessment"
                 search={{ oem: undefined }}
                 className="rounded-md bg-gradient-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-card transition-transform hover:scale-[1.02]"
@@ -252,6 +259,14 @@ export function SiteHeader() {
 
                 <Link to="/auth" onClick={() => setOpen(false)} className="rounded-md border border-border bg-surface px-4 py-2 text-center text-sm font-medium">
                   Sign in
+                </Link>
+                <Link
+                  to="/auth"
+                  search={{ mode: "signup" }}
+                  onClick={() => setOpen(false)}
+                  className="rounded-md border border-border bg-surface px-4 py-2 text-center text-sm font-medium"
+                >
+                  Sign up
                 </Link>
               </>
             )}

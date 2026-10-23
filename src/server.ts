@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { certAliasRedirectUrl, certDetailHttpStatus } from "./lib/cert-aliases";
 import { legacyRedirectUrl } from "./lib/legacy-redirects";
 import { withSecurityHeaders } from "./lib/security-headers";
 
@@ -42,13 +43,26 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const aliasTo = certAliasRedirectUrl(request.url);
+      if (aliasTo) {
+        return withSecurityHeaders(Response.redirect(aliasTo, 301));
+      }
       const redirectTo = legacyRedirectUrl(request.url);
       if (redirectTo) {
         return withSecurityHeaders(Response.redirect(redirectTo, 301));
       }
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+      let response = await handler.fetch(request, env, ctx);
+      response = await normalizeCatastrophicSsrResponse(response);
+      const status = certDetailHttpStatus(new URL(request.url).pathname, response.status);
+      if (status !== response.status) {
+        response = new Response(response.body, {
+          status,
+          statusText: "Not Found",
+          headers: response.headers,
+        });
+      }
+      return withSecurityHeaders(response);
     } catch (error) {
       console.error(error);
       return withSecurityHeaders(
