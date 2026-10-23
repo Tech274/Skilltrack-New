@@ -107,7 +107,8 @@ BEGIN
     ORDER BY
       CASE WHEN sort_key = 'email' THEN filtered.email END ASC NULLS LAST,
       CASE WHEN sort_key = 'created_at' THEN filtered.created_at END DESC NULLS LAST,
-      filtered.email ASC NULLS LAST
+      filtered.email ASC NULLS LAST,
+      filtered.id ASC
     LIMIT lim OFFSET off
   )
   SELECT

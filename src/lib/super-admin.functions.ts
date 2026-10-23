@@ -184,8 +184,8 @@ async function queryAuditRows(f: AuditFilters, opts: { paged: boolean }) {
     let q = supabaseAdmin
       .from("super_admin_audit_log")
       .select("*", { count: "exact" })
-      .order("created_at", { ascending: false });
-    if (forExport) q = q.order("id", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     if (f.action) q = q.eq("action", f.action);
     if (f.actor) {
       const pattern = ilikePattern(f.actor);

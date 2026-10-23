@@ -55,7 +55,8 @@ export const listInvoices = createServerFn({ method: "GET" })
     let q = supabaseAdmin
       .from("invoices")
       .select("id, invoice_number, learner_id, learner_email, learner_name, description, plan_key, amount, discount, tax, total, currency, status, issue_date, due_date, paid_at, created_at, email_status, email_last_sent_at, email_last_error", { count: "exact" })
-      .order("issue_date", { ascending: false });
+      .order("issue_date", { ascending: false })
+      .order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     const pattern = ilikePattern(data?.search);
     if (pattern) q = q.or(`invoice_number.ilike.${pattern},learner_email.ilike.${pattern},learner_name.ilike.${pattern}`);
@@ -572,7 +573,8 @@ export const listInvoiceEmailAudit = createServerFn({ method: "GET" })
     let q = supabaseAdmin
       .from("invoice_email_audit")
       .select("id, invoice_id, invoice_number, actor_id, actor_email, recipient_email, status, provider_message_id, error_message, metadata, created_at", { count: "exact" })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     if (data?.invoiceId) q = q.eq("invoice_id", data.invoiceId);
     if (data?.status) q = q.eq("status", data.status);
     const recipient = ilikePattern(data?.recipient);
@@ -682,7 +684,8 @@ export const listPayments = createServerFn({ method: "GET" })
     let q = supabaseAdmin
       .from("payments")
       .select("id, invoice_id, learner_id, amount, currency, mode, status, transaction_id, paid_at, remarks, invoices(invoice_number, learner_email, learner_name)", { count: "exact" })
-      .order("paid_at", { ascending: false });
+      .order("paid_at", { ascending: false })
+      .order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     if (data?.mode && data.mode !== "all") q = q.eq("mode", data.mode);
     const pattern = ilikePattern(data?.search);

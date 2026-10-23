@@ -196,10 +196,14 @@ async function hydrateAuthUsers(admin: AdminClient, users: AuthUser[]) {
   });
 }
 
+const EMAIL_FALLBACK_PAGE_SIZE = 200;
+const EMAIL_FALLBACK_MAX_USERS = 5_000;
+
 /**
  * One lookup for many auth emails. Uses admin_user_emails when that function
- * is deployed. Otherwise walks listUsers pages until every requested id is
- * found, instead of calling getUserById once per row.
+ * is deployed. Otherwise walks listUsers until every requested id is found.
+ * A directory larger than 5,000 users cannot be scanned this way, so a missing
+ * migration throws instead of returning blank emails.
  */
 export async function loadUserEmails(
   admin: AdminClient,
@@ -220,17 +224,31 @@ export async function loadUserEmails(
   if (!MISSING_RPC.has(error.code ?? "")) throw new Error("Could not load user emails");
 
   const wanted = new Set(unique);
-  for (let page = 1; page <= 25 && map.size < wanted.size; page++) {
+  const maxPages = EMAIL_FALLBACK_MAX_USERS / EMAIL_FALLBACK_PAGE_SIZE;
+  for (let page = 1; page <= maxPages && map.size < wanted.size; page++) {
     const { data: listed, error: listError } = await admin.auth.admin.listUsers({
       page,
-      perPage: 200,
+      perPage: EMAIL_FALLBACK_PAGE_SIZE,
     });
     if (listError) throw new Error("Could not load user emails");
     const users = listed?.users ?? [];
     for (const user of users) {
       if (wanted.has(user.id)) map.set(user.id, user.email ?? null);
     }
-    if (users.length < 200) break;
+    if (users.length < EMAIL_FALLBACK_PAGE_SIZE) return map;
+  }
+
+  if (map.size < wanted.size) {
+    const { data: extra, error: extraError } = await admin.auth.admin.listUsers({
+      page: maxPages + 1,
+      perPage: 1,
+    });
+    if (extraError) throw new Error("Could not load user emails");
+    if ((extra?.users ?? []).length > 0) {
+      throw new Error(
+        "admin_user_emails is not deployed and there are more than 5,000 users, so email addresses cannot be filled in. Apply the admin_user_emails migration and try again.",
+      );
+    }
   }
   return map;
 }

@@ -222,6 +222,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
       .from("role_audit_log")
       .select("*")
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -341,6 +342,7 @@ export const listPermissionAudit = createServerFn({ method: "GET" })
       .from("permission_audit_log" as any)
       .select("*")
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
     return data ?? [];

@@ -60,10 +60,10 @@ export function exportWindowEnd(requestedTo: string | null | undefined, startedA
   return startedAt;
 }
 
-/** CSV cell. A leading = + - or @ is prefixed so a spreadsheet does not treat it as a formula. */
+/** CSV cell. A leading = + - @ tab or carriage return is prefixed so a spreadsheet does not treat it as a formula. */
 export function csvCell(value: unknown): string {
   let text = value == null ? "" : typeof value === "string" ? value : JSON.stringify(value);
-  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
   return text;
 }

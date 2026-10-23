@@ -77,6 +77,7 @@ export const listAiRecsAudit = createServerFn({ method: "GET" })
         { count: "exact" },
       )
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(from, to);
     q = applyFilters(q, f);
     const { data: rows, count, error } = await q;

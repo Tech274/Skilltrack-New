@@ -44,7 +44,7 @@ export const listCertifications = createServerFn({ method: "GET" })
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const bounds = pageBounds(data?.page, data?.pageSize);
-    let q = supabaseAdmin.from("certifications_catalog").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    let q = supabaseAdmin.from("certifications_catalog").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     const pattern = ilikePattern(data?.search);
     if (pattern) q = q.or(`name.ilike.${pattern},code.ilike.${pattern},vendor.ilike.${pattern},slug.ilike.${pattern}`);
@@ -133,7 +133,7 @@ export const listResources = createServerFn({ method: "GET" })
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const bounds = pageBounds(data?.page, data?.pageSize);
-    let q = supabaseAdmin.from("study_resources").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    let q = supabaseAdmin.from("study_resources").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     if (data?.tier && data.tier !== "all") q = q.eq("access_tier", data.tier);
     if (data?.certification_slug) q = q.eq("certification_slug", data.certification_slug);
@@ -262,7 +262,7 @@ export const listMockExams = createServerFn({ method: "GET" })
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const bounds = pageBounds(data?.page, data?.pageSize);
-    let q = supabaseAdmin.from("mock_exams").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    let q = supabaseAdmin.from("mock_exams").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     const pattern = ilikePattern(data?.search);
     if (pattern) q = q.or(`title.ilike.${pattern},description.ilike.${pattern},certification_slug.ilike.${pattern}`);

@@ -117,7 +117,8 @@ export const listCampaignsAdmin = createServerFn({ method: "GET" })
     let q = context.supabase
       .from("campaigns")
       .select("*", { count: "exact" })
-      .order("priority", { ascending: true });
+      .order("priority", { ascending: true })
+      .order("id", { ascending: false });
     const pattern = ilikePattern(data?.search);
     if (pattern) q = q.or(`title.ilike.${pattern},headline.ilike.${pattern},slug.ilike.${pattern}`);
     const { data: rows, error, count } = await q.range(bounds.from, bounds.to);

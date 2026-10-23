@@ -89,7 +89,8 @@ export const listLearningPaths = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("learning_paths")
       .select("id, org_id, title, target_certification_slug, difficulty, status, estimated_hours, updated_at", { count: "exact" })
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false });
     if (data.org_id) q = q.eq("org_id", data.org_id);
     const pattern = ilikePattern(data.search);
     if (pattern) q = q.or(`title.ilike.${pattern},target_certification_slug.ilike.${pattern}`);

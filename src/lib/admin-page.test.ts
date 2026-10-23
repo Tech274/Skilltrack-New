@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { collectPagedRows, csvCell, exportWindowEnd, ilikePattern, pageBounds } from "./admin-page";
-import { asRoles, isBanned } from "./admin-directory.server";
+import { asRoles, isBanned, loadUserEmails } from "./admin-directory.server";
 
 describe("admin page bounds", () => {
   it("defaults to page 1 and 50 rows", () => {
@@ -49,7 +49,10 @@ describe("paged export", () => {
     }
     const audit = readFileSync(resolve("src/lib/super-admin.functions.ts"), "utf8");
     expect(audit).toContain("exportWindowEnd");
+    expect(audit).not.toContain('if (forExport) q = q.order("id", { ascending: false })');
     const ai = readFileSync(resolve("src/lib/admin-ai-audit.functions.ts"), "utf8");
+    const list = ai.slice(ai.indexOf("export const listAiRecsAudit"), ai.indexOf("export const exportAiRecsAuditCsv"));
+    expect(list).toContain('.order("id", { ascending: false })');
     expect(ai).toContain('.lte("created_at", startedAt)');
     const enrich = ai.slice(
       ai.indexOf("async function enrichEmails"),
@@ -89,6 +92,8 @@ describe("csv cells", () => {
     expect(csvCell("@sum")).toBe("'@sum");
     expect(csvCell("safe")).toBe("safe");
     expect(csvCell("=1,2")).toBe(`"'=1,2"`);
+    expect(csvCell("\t=1+1")).toBe("'\t=1+1");
+    expect(csvCell("\r=1+1")).toBe("\"'\r=1+1\"");
   });
 });
 
@@ -133,6 +138,7 @@ describe("admin directory migration", () => {
     expect(sql).not.toContain(
       "GRANT EXECUTE ON FUNCTION public.admin_directory_page(text, text, text, integer, integer, text) TO authenticated",
     );
+    expect(sql).toContain("filtered.id ASC");
   });
 
   it("loads many auth emails in one function", () => {
@@ -180,6 +186,26 @@ describe("paged admin lists", () => {
     expect(handler).toContain("ilikePattern");
   });
 
+  it("breaks timestamp ties with the row id on each on-screen list", () => {
+    for (const file of [
+      "src/lib/admin-leads.functions.ts",
+      "src/lib/admin-reports.functions.ts",
+      "src/lib/admin-content.functions.ts",
+      "src/lib/admin-invoices.functions.ts",
+      "src/lib/admin-ai-actions-audit.functions.ts",
+      "src/lib/admin-ai-audit.functions.ts",
+      "src/lib/question-bank.functions.ts",
+      "src/lib/campaigns.functions.ts",
+      "src/lib/learning-paths.functions.ts",
+      "src/lib/admin-marketplace.functions.ts",
+      "src/lib/admin.functions.ts",
+      "src/lib/admin-learners.functions.ts",
+    ]) {
+      const src = readFileSync(resolve(file), "utf8");
+      expect(src, file).toContain('.order("id", { ascending: false })');
+    }
+  });
+
   it("keeps the existing super-admin gate on the user directory", () => {
     const handler = users.slice(
       users.indexOf("export const listAllUsers"),
@@ -189,5 +215,49 @@ describe("paged admin lists", () => {
     expect(handler).toContain("assertSuperAdmin");
     expect(handler).toContain("queryAdminDirectory");
     expect(handler).not.toContain("isPlatformAdmin");
+  });
+});
+
+describe("loadUserEmails fallback", () => {
+  function adminWith(pages: Array<Array<{ id: string; email: string | null }>>, code = "PGRST202") {
+    let call = 0;
+    return {
+      rpc: async () => ({ data: null, error: { code } }),
+      auth: {
+        admin: {
+          listUsers: async () => {
+            const users = pages[call] ?? [];
+            call += 1;
+            return { data: { users }, error: null };
+          },
+        },
+      },
+    };
+  }
+
+  it("returns emails from a directory of 5,000 or fewer users", async () => {
+    const admin = adminWith([[{ id: "user-1", email: "one@example.com" }]]);
+    const emails = await loadUserEmails(admin as never, ["user-1", "missing"]);
+    expect(emails.get("user-1")).toBe("one@example.com");
+    expect(emails.has("missing")).toBe(false);
+  });
+
+  it("throws when the migration is missing and the directory is over 5,000 users", async () => {
+    const full = Array.from({ length: 200 }, (_, i) => ({ id: `other-${i}`, email: `other-${i}@example.com` }));
+    const pages = Array.from({ length: 25 }, () => full);
+    pages.push([{ id: "user-5001", email: "past-cap@example.com" }]);
+    const admin = adminWith(pages, "42883");
+    await expect(loadUserEmails(admin as never, ["wanted-user"])).rejects.toThrow(
+      /more than 5,000 users/,
+    );
+  });
+
+  it("does not throw when the 5,000th user is the last one", async () => {
+    const full = Array.from({ length: 200 }, (_, i) => ({ id: `other-${i}`, email: null }));
+    const pages = Array.from({ length: 25 }, () => full);
+    pages.push([]);
+    const admin = adminWith(pages);
+    const emails = await loadUserEmails(admin as never, ["wanted-user"]);
+    expect(emails.has("wanted-user")).toBe(false);
   });
 });

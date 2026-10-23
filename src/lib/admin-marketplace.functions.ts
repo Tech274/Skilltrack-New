@@ -67,13 +67,14 @@ export const listMarketplaceCatalogAdmin = createServerFn({ method: "GET" })
     const certBounds = pageBounds(data?.certPage, pageSize);
     const skuBounds = pageBounds(data?.skuPage, pageSize);
 
-    let certsQ = supabaseAdmin.from("marketplace_certs").select("*", { count: "exact" }).order("sort_order");
+    let certsQ = supabaseAdmin.from("marketplace_certs").select("*", { count: "exact" }).order("sort_order").order("id", { ascending: false });
     if (data?.certOemId) certsQ = certsQ.eq("oem_id", data.certOemId);
 
     let skusQ = supabaseAdmin
       .from("marketplace_skus")
       .select("*, marketplace_certs(id, short_name, name)", { count: "exact" })
-      .order("title");
+      .order("title")
+      .order("id", { ascending: false });
     if (data?.skuCertId) skusQ = skusQ.eq("cert_id", data.skuCertId);
     const skuPattern = ilikePattern(data?.skuSearch);
     if (skuPattern) skusQ = skusQ.ilike("title", skuPattern);
@@ -89,7 +90,7 @@ export const listMarketplaceCatalogAdmin = createServerFn({ method: "GET" })
     }
 
     const [oems, certs, skus, choices] = await Promise.all([
-      supabaseAdmin.from("marketplace_oems").select("*", { count: "exact" }).order("sort_order").range(0, 199),
+      supabaseAdmin.from("marketplace_oems").select("*", { count: "exact" }).order("sort_order").order("id", { ascending: false }).range(0, 199),
       certsQ.range(certBounds.from, certBounds.to),
       skusQ.range(skuBounds.from, skuBounds.to),
       choicesQ,

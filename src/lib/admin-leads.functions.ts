@@ -52,7 +52,8 @@ export const listSavedLeads = createServerFn({ method: "GET" })
         "id, created_at, source, name, email, phone, certs, status, sheet_synced_at, sheet_error",
         { count: "exact" },
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     if (input?.source) q = q.eq("source", input.source);
     const pattern = ilikePattern(input?.search);
     if (pattern) q = q.or(`name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`);

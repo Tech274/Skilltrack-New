@@ -73,7 +73,8 @@ async function fallbackLearners(supabaseAdmin: any, data: { search?: string; sta
     .from("profiles")
     .select("id, display_name, headline, country, target_role, timezone, created_at")
     .in("id", ids)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
 
   const emailMap = new Map<string, { email: string | null; banned: boolean }>();
   let page = 1;

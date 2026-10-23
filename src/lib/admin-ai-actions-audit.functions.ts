@@ -38,6 +38,7 @@ export const listAiActionAudit = createServerFn({ method: "POST" })
       .from("ai_action_audit")
       .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(from, to);
 
     if (data.area) q = q.eq("area", data.area);

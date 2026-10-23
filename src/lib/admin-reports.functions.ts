@@ -205,7 +205,8 @@ export const listSubscribers = createServerFn({ method: "POST" })
         "id, scope, user_id, org_id, plan_code, billing_interval, seats, status, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, created_at",
         { count: "exact" },
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     const pattern = ilikePattern(data.search);
     if (pattern) q = q.or(`plan_code.ilike.${pattern},stripe_customer_id.ilike.${pattern},scope.ilike.${pattern}`);

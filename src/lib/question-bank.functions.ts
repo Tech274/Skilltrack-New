@@ -68,7 +68,7 @@ export const listQuestions = createServerFn({ method: "GET" })
     const bounds = pageBounds(data?.page, data?.pageSize);
     const empty = { rows: [], total: 0, page: bounds.page, pageSize: bounds.pageSize };
 
-    let q = supabaseAdmin.from("question_bank").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    let q = supabaseAdmin.from("question_bank").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.certification_slug) q = q.eq("certification_slug", data.certification_slug);
     if (data?.difficulty && data.difficulty !== "all") q = q.eq("difficulty", data.difficulty);
     const topic = ilikePattern(data?.topic);
