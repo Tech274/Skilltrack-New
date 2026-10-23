@@ -9,14 +9,19 @@ describe("admin definition from the leads RLS branch", () => {
     expect(auth).toContain("LEAD_ACCESS_ROLES");
 
     const users = readFileSync("src/lib/admin.functions.ts", "utf8");
-    const list = users.slice(users.indexOf("export const listAllUsers"), users.indexOf("export const grantUserRole"));
+    const list = users.slice(
+      users.indexOf("export const listAllUsers"),
+      users.indexOf("export const grantUserRole"),
+    );
     expect(list).toContain("await requireAdmin(context.userId)");
     expect(list).toContain("await assertSuperAdmin");
     expect(list).not.toContain("isPlatformAdmin");
     expect(list).not.toContain("is_admin");
 
     const nav = readFileSync("src/routes/_authenticated/admin.tsx", "utf8");
-    expect(nav).toContain('to: "/admin/users", label: "User Management", icon: Users, superOnly: true');
+    expect(nav).toContain(
+      'to: "/admin/users", label: "User Management", icon: Users, superOnly: true',
+    );
     expect(nav).not.toContain("platformAdmin");
 
     expect(existsSync("src/lib/platform-admin.server.ts")).toBe(false);
