@@ -16,11 +16,6 @@ dist-ssr
 .nitro
 *.local
 
-# Local secrets. .env.example is the tracked template.
-.env
-.env.*
-!.env.example
-
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

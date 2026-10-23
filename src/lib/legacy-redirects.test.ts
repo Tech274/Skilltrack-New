@@ -4,9 +4,7 @@ import { themeInitScript } from "@/components/theme-toggle";
 import { PERMISSION_PDF_PRINT_SCRIPT } from "./permission-export";
 import { LEGACY_REDIRECTS, legacyLocationHref, legacyRedirectUrl } from "./legacy-redirects";
 import {
-  applyScriptNonces,
   CONTENT_SECURITY_POLICY,
-  contentSecurityPolicyForHtml,
   scriptSourceHash,
   withSecurityHeaders,
   X_FRAME_OPTIONS,
@@ -96,19 +94,25 @@ describe("security headers", () => {
     expect(text).toContain(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`);
   });
 
-  it("drops script-src unsafe-inline and hashes the stable inline scripts", () => {
-    expect(CONTENT_SECURITY_POLICY).not.toContain("script-src 'self' 'unsafe-inline'");
-    expect(CONTENT_SECURITY_POLICY).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  it("keeps a static policy and does not buffer HTML to stamp nonces", async () => {
+    const headers = readFileSync("src/lib/security-headers.ts", "utf8");
+    expect(headers).not.toContain("applyScriptNonces");
+    expect(headers).not.toContain("response.text(");
+    expect(CONTENT_SECURITY_POLICY).toContain(
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+    );
     expect(CONTENT_SECURITY_POLICY).toContain("style-src 'self' 'unsafe-inline'");
-    expect(CONTENT_SECURITY_POLICY).toContain(scriptSourceHash(themeInitScript));
-    expect(CONTENT_SECURITY_POLICY).toContain(scriptSourceHash(PERMISSION_PDF_PRINT_SCRIPT));
-    const html = `<script>${themeInitScript}</script><script type="application/ld+json">{}</script>`;
-    const applied = applyScriptNonces(html, "abc123");
-    expect(applied.used).toBe(true);
-    expect(applied.html).toContain('<script nonce="abc123">');
-    expect(applied.html).toContain('<script type="application/ld+json">');
-    const dynamic = contentSecurityPolicyForHtml(applied.html, "abc123");
-    expect(dynamic).toContain("'nonce-abc123'");
-    expect(dynamic).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    const themeHash = scriptSourceHash(themeInitScript);
+    const printHash = scriptSourceHash(PERMISSION_PDF_PRINT_SCRIPT);
+    expect(themeHash).toMatch(/^'sha256-[A-Za-z0-9+/]+=*'$/);
+    expect(printHash).toMatch(/^'sha256-[A-Za-z0-9+/]+=*'$/);
+    expect(CONTENT_SECURITY_POLICY).not.toContain(themeHash);
+    expect(CONTENT_SECURITY_POLICY).not.toContain(printHash);
+    const body = "hello-page";
+    const response = await withSecurityHeaders(
+      new Response(body, { headers: { "content-type": "text/html" } }),
+    );
+    expect(await response.text()).toBe(body);
+    expect(response.headers.get("Content-Security-Policy")).toBe(CONTENT_SECURITY_POLICY);
   });
 });
