@@ -13,15 +13,25 @@ function csvEscape(v: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function buildPermissionCsv(roles: string[], roleLabels: Record<string, string>, rows: MatrixRow[]): string {
+export function buildPermissionCsv(
+  roles: string[],
+  roleLabels: Record<string, string>,
+  rows: MatrixRow[],
+): string {
   const header = ["Permission", "Description", ...roles.map((r) => roleLabels[r] ?? r)];
   const lines = [header.map(csvEscape).join(",")];
   for (const r of rows) {
     lines.push(
-      [r.permission, r.description ?? "", ...roles.map((role) => {
-        const v = r.byRole[role];
-        return v == null ? "—" : v ? "Allowed" : "Denied";
-      })].map(csvEscape).join(","),
+      [
+        r.permission,
+        r.description ?? "",
+        ...roles.map((role) => {
+          const v = r.byRole[role];
+          return v == null ? "—" : v ? "Allowed" : "Denied";
+        }),
+      ]
+        .map(csvEscape)
+        .join(","),
     );
   }
   return lines.join("\n");
@@ -39,6 +49,10 @@ export function downloadCsv(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Stable inline script so the print window can be allowed by a CSP hash. */
+export const PERMISSION_PDF_PRINT_SCRIPT =
+  "window.addEventListener('load',()=>setTimeout(()=>window.print(),250));";
+
 export function openPermissionPdf(
   roles: string[],
   roleLabels: Record<string, string>,
@@ -51,8 +65,8 @@ export function openPermissionPdf(
     v == null
       ? '<td style="text-align:center;color:#999">—</td>'
       : v
-      ? '<td style="text-align:center;color:#0a7d2c;font-weight:600">✓</td>'
-      : '<td style="text-align:center;color:#b00020">✗</td>';
+        ? '<td style="text-align:center;color:#0a7d2c;font-weight:600">✓</td>'
+        : '<td style="text-align:center;color:#b00020">✗</td>';
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Permission Matrix</title>
 <style>
   body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;color:#111}
@@ -71,7 +85,7 @@ export function openPermissionPdf(
 <tbody>
 ${rows.map((r) => `<tr><td><div class="perm">${r.permission}</div>${r.description ? `<div class="desc">${r.description}</div>` : ""}</td>${roles.map((role) => cell(r.byRole[role])).join("")}</tr>`).join("")}
 </tbody></table>
-<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));</script>
+<script>${PERMISSION_PDF_PRINT_SCRIPT}</script>
 </body></html>`;
   win.document.write(html);
   win.document.close();

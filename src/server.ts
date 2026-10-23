@@ -44,14 +44,14 @@ export default {
     try {
       const redirectTo = legacyRedirectUrl(request.url);
       if (redirectTo) {
-        return withSecurityHeaders(Response.redirect(redirectTo, 301));
+        return await withSecurityHeaders(Response.redirect(redirectTo, 301));
       }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+      return await withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return withSecurityHeaders(
+      return await withSecurityHeaders(
         new Response(renderErrorPage(), {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },

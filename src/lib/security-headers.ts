@@ -1,7 +1,20 @@
+import { createHash } from "node:crypto";
+
 export const X_FRAME_OPTIONS = "DENY";
 
 /**
- * Document policy for this app.
+ * Static document policy. Headers are set on the response. The body is not read
+ * and no nonce is stamped after render.
+ *
+ * script-src keeps 'unsafe-inline'. TanStack Start injects per-request inline
+ * scripts (scroll restoration and window.$_TSR). Those bytes change on every
+ * response, so a build-time hash does not match them. A nonce would require
+ * buffering the rendered HTML, which this server does not do. In CSP3 a hash
+ * or nonce also makes the browser ignore 'unsafe-inline', so the stable theme
+ * and permission-print hashes are computed by scriptSourceHash for tests and
+ * are intentionally absent from this policy.
+ *
+ * style-src keeps 'unsafe-inline' because the chart theme injects a style tag.
  *
  * Browser origins: Supabase (`https://*.supabase.co`, `wss://*.supabase.co`),
  * Stripe.js (`js.stripe.com`, `*.js.stripe.com`, `hooks.stripe.com`,
@@ -34,6 +47,11 @@ export const CONTENT_SECURITY_POLICY = [
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
+
+/** Build-time hash of a stable inline script. Not inserted into the live policy. */
+export function scriptSourceHash(source: string): string {
+  return `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
+}
 
 export function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
