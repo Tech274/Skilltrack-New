@@ -179,29 +179,40 @@ type AuditFilters = z.infer<typeof auditFiltersSchema>;
 
 async function queryAuditRows(f: AuditFilters, opts: { paged: boolean }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let q = supabaseAdmin
-    .from("super_admin_audit_log")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false });
-
-  if (f.action) q = q.eq("action", f.action);
-  if (f.actor) q = q.or(`actor_email.ilike.%${f.actor}%,actor_id.eq.${isUuid(f.actor) ? f.actor : "00000000-0000-0000-0000-000000000000"}`);
-  if (f.targetUserId) {
-    if (isUuid(f.targetUserId)) q = q.eq("target_user_id", f.targetUserId);
-    else q = q.ilike("target_email", `%${f.targetUserId}%`);
-  }
-  if (f.from) q = q.gte("created_at", f.from);
-  if (f.to) q = q.lte("created_at", f.to);
+  const build = () => {
+    let q = supabaseAdmin
+      .from("super_admin_audit_log")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
+    if (f.action) q = q.eq("action", f.action);
+    if (f.actor) {
+      q = q.or(
+        `actor_email.ilike.%${f.actor}%,actor_id.eq.${isUuid(f.actor) ? f.actor : "00000000-0000-0000-0000-000000000000"}`,
+      );
+    }
+    if (f.targetUserId) {
+      if (isUuid(f.targetUserId)) q = q.eq("target_user_id", f.targetUserId);
+      else q = q.ilike("target_email", `%${f.targetUserId}%`);
+    }
+    if (f.from) q = q.gte("created_at", f.from);
+    if (f.to) q = q.lte("created_at", f.to);
+    return q;
+  };
 
   if (opts.paged) {
     const from = (f.page - 1) * f.pageSize;
-    q = q.range(from, from + f.pageSize - 1);
-  } else {
-    q = q.limit(10000);
+    const { data, error, count } = await build().range(from, from + f.pageSize - 1);
+    if (error) throw new Error(error.message);
+    return { rows: data ?? [], total: count ?? 0 };
   }
-  const { data, error, count } = await q;
-  if (error) throw new Error(error.message);
-  return { rows: data ?? [], total: count ?? 0 };
+
+  const { collectPagedRows } = await import("@/lib/admin-page");
+  const rows = await collectPagedRows(async (from, to) => {
+    const { data, error } = await build().range(from, to);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+  return { rows, total: rows.length };
 }
 
 function isUuid(s: string): boolean {

@@ -91,16 +91,19 @@ export const exportAiRecsAuditCsv = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const f = { strategy: "all", fallbackOnly: false, errorOnly: false, search: "", ...(data ?? {}) } as Required<NonNullable<z.infer<typeof filterSchema>>>;
 
-    // Export honors active filters, capped at 10k rows to keep memory bounded.
-    let q = (supabaseAdmin.from("ai_recs_audit" as any) as any)
-      .select("id, user_id, strategy, source, fallback, message, error, recommendation_count, created_at")
-      .order("created_at", { ascending: false })
-      .limit(10000);
-    q = applyFilters(q, f);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
+    const { collectPagedRows } = await import("@/lib/admin-page");
+    const rows = await collectPagedRows(async (from, to) => {
+      let q = (supabaseAdmin.from("ai_recs_audit" as any) as any)
+        .select("id, user_id, strategy, source, fallback, message, error, recommendation_count, created_at")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      q = applyFilters(q, f);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    });
 
-    const enriched = await enrichEmails(rows ?? []);
+    const enriched = await enrichEmails(rows);
     const headers = [
       "created_at", "user_email", "user_id", "strategy", "source",
       "fallback", "recommendation_count", "message", "error",

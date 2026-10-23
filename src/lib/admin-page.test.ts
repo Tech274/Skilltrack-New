@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ilikePattern, pageBounds } from "./admin-page";
+import { collectPagedRows, ilikePattern, pageBounds } from "./admin-page";
 import { asRoles, isBanned } from "./admin-directory.server";
 
 describe("admin page bounds", () => {
@@ -15,6 +15,42 @@ describe("admin page bounds", () => {
 
   it("treats a non-positive page as the first page", () => {
     expect(pageBounds(0, 10).page).toBe(1);
+  });
+});
+
+describe("paged export", () => {
+  it("walks every full page and stops on a short page", async () => {
+    const calls: Array<[number, number]> = [];
+    const rows = await collectPagedRows(async (from, to) => {
+      calls.push([from, to]);
+      if (from === 0) return Array.from({ length: 1000 }, (_, i) => i);
+      if (from === 1000) return [1000, 1001];
+      return [];
+    });
+    expect(calls).toEqual([
+      [0, 999],
+      [1000, 1999],
+    ]);
+    expect(rows).toHaveLength(1002);
+    expect(rows[1001]).toBe(1001);
+  });
+
+  it("pages the csv exports instead of one limit above 1000", () => {
+    for (const file of [
+      "src/lib/super-admin.functions.ts",
+      "src/lib/admin-ai-audit.functions.ts",
+    ]) {
+      const src = readFileSync(resolve(file), "utf8");
+      expect(src, file).toContain("collectPagedRows");
+      expect(src, file).not.toContain(".limit(10000)");
+      expect(src, file).not.toContain(".limit(1000)");
+    }
+  });
+
+  it("refuses to silently stop at the old 1000-row cap", async () => {
+    await expect(
+      collectPagedRows(async () => Array.from({ length: 3 }, () => "row"), 3, 5),
+    ).rejects.toThrow(/stopped after 5 rows/);
   });
 });
 
