@@ -1,8 +1,10 @@
 /**
- * Every admin server function must call requireAdmin().
- * A new createServerFn in these files that skips the call fails this test.
+ * Every non-lead admin server function must call requireAdmin().
+ * Lead PII functions must call requireLeadAccess() (admin, operations,
+ * finance, support, or super_admins) instead of the broad gate.
+ * A new createServerFn that skips its gate fails this test.
  *
- * requireAdmin allows any admin-flavor role or a super_admins row.
+ * requireAdmin stays broad: any admin-flavor role or a super_admins row.
  * Narrower per-file checks (finance, content, super-only, permissions)
  * stay in place, so those roles keep the access they already had.
  */
@@ -47,13 +49,17 @@ export function adminServerFunctionFiles(dir = "src/lib"): string[] {
   );
 }
 
-/** Drop comments so a commented-out requireAdmin() does not satisfy the test. */
+const LEAD_SERVER_FILES = new Set(["admin-leads.functions.ts", "sales-leads.functions.ts"]);
+
+/** Drop comments so a commented-out gate does not satisfy the test. */
 export function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:\\])\/\/.*$/gm, "$1");
 }
 
-/** Names of createServerFn exports whose handler never calls requireAdmin(. */
-export function adminFnsMissingRequireAdmin(src: string): string[] {
+/** Names of createServerFn exports whose handler skips its required gate. */
+export function adminFnsMissingRequireAdmin(file: string, src: string): string[] {
+  const base = file.split("/").pop() ?? file;
+  const needle = LEAD_SERVER_FILES.has(base) ? "requireLeadAccess(" : "requireAdmin(";
   const clean = stripComments(src);
   const matches = [...clean.matchAll(/export const (\w+) = createServerFn\b/g)];
   const missing: string[] = [];
@@ -64,7 +70,7 @@ export function adminFnsMissingRequireAdmin(src: string): string[] {
     const chunk = clean.slice(start, end);
     const handlerAt = chunk.indexOf(".handler(");
     const body = handlerAt === -1 ? chunk : chunk.slice(handlerAt);
-    if (!body.includes("requireAdmin(")) missing.push(name);
+    if (!body.includes(needle)) missing.push(name);
   }
   return missing;
 }
@@ -78,27 +84,48 @@ describe("requireAdmin covers every admin server function", () => {
           return context.userId;
         });
     `;
-    expect(adminFnsMissingRequireAdmin(src)).toEqual(["leakLeads"]);
+    expect(adminFnsMissingRequireAdmin("admin-dashboard.functions.ts", src)).toEqual(["leakLeads"]);
   });
 
   it("accepts a server function that calls requireAdmin", () => {
     const src = `
+      export const getAdminDashboard = createServerFn({ method: "GET" })
+        .handler(async ({ context }) => {
+          await requireAdmin(context.userId);
+          return [];
+        });
+    `;
+    expect(adminFnsMissingRequireAdmin("admin-dashboard.functions.ts", src)).toEqual([]);
+  });
+
+  it("requires requireLeadAccess on lead PII functions, not the broad gate", () => {
+    const broad = `
       export const listSavedLeads = createServerFn({ method: "GET" })
         .handler(async ({ context }) => {
           await requireAdmin(context.userId);
           return [];
         });
     `;
-    expect(adminFnsMissingRequireAdmin(src)).toEqual([]);
+    const narrow = `
+      export const listSavedLeads = createServerFn({ method: "GET" })
+        .handler(async ({ context }) => {
+          await requireLeadAccess(context.userId);
+          return [];
+        });
+    `;
+    expect(adminFnsMissingRequireAdmin("admin-leads.functions.ts", broad)).toEqual([
+      "listSavedLeads",
+    ]);
+    expect(adminFnsMissingRequireAdmin("admin-leads.functions.ts", narrow)).toEqual([]);
   });
 
-  it("every admin server function calls requireAdmin", () => {
+  it("every admin server function calls its gate", () => {
     const missed: string[] = [];
     for (const file of adminServerFunctionFiles()) {
       const src = readFileSync(file, "utf8");
-      for (const name of adminFnsMissingRequireAdmin(src)) missed.push(`${file}#${name}`);
+      for (const name of adminFnsMissingRequireAdmin(file, src)) missed.push(`${file}#${name}`);
     }
-    expect(missed, `Admin server functions missing requireAdmin(): ${missed.join(", ")}`).toEqual(
+    expect(missed, `Admin server functions missing their auth gate: ${missed.join(", ")}`).toEqual(
       [],
     );
   });
@@ -148,20 +175,54 @@ describe("requireAdmin allows admins and super admins", () => {
   });
 });
 
+describe("requireLeadAccess matches the sales-leads allowlist", () => {
+  beforeEach(() => {
+    actor.isSuper = false;
+    actor.roles = [];
+  });
+
+  it("allows admin, operations, finance, support, and super admins", async () => {
+    const { requireLeadAccess } = await import("@/lib/admin-auth.server");
+    for (const role of ["admin", "operations_admin", "finance_admin", "support_admin"]) {
+      actor.isSuper = false;
+      actor.roles = [role];
+      await expect(requireLeadAccess("user-1")).resolves.toMatchObject({ isSuperAdmin: false });
+    }
+    actor.isSuper = true;
+    actor.roles = [];
+    await expect(requireLeadAccess("user-1")).resolves.toMatchObject({ isSuperAdmin: true });
+  });
+
+  it("rejects other admin-flavor roles that requireAdmin still allows", async () => {
+    const { requireAdmin, requireLeadAccess } = await import("@/lib/admin-auth.server");
+    for (const role of ["content_admin", "certification_admin", "lab_admin", "learner"]) {
+      actor.isSuper = false;
+      actor.roles = [role];
+      await expect(requireLeadAccess("user-1")).rejects.toThrow(/Forbidden: lead access required/);
+    }
+    actor.roles = ["content_admin"];
+    await expect(requireAdmin("user-1")).resolves.toMatchObject({ isAnyAdmin: true });
+  });
+});
+
 describe("leads RLS migration file", () => {
   const path = "supabase/migrations/20261023180000_leads_admin_rls.sql";
 
-  it("enables RLS with admin select/update and the public lead insert, and says to apply it live", () => {
+  it("limits select/update to the sales-leads roles and has no service-role policies", () => {
     const sql = readFileSync(path, "utf8");
     expect(sql).toMatch(/NOT APPLIED/i);
     expect(sql).toMatch(/live database/i);
     expect(sql).toMatch(/ENABLE ROW LEVEL SECURITY/i);
     expect(sql).toMatch(/FOR SELECT/);
     expect(sql).toMatch(/FOR UPDATE/);
-    expect(sql).toMatch(/FOR INSERT/);
     expect(sql).toMatch(/is_super_admin/);
     expect(sql).toMatch(/is_admin_role/);
-    expect(sql).toMatch(/service_role/);
+    for (const role of ["admin", "operations_admin", "finance_admin", "support_admin"]) {
+      expect(sql).toContain(`'${role}'`);
+    }
+    expect(sql).not.toMatch(/content_admin|certification_admin|lab_admin/);
+    expect(sql).not.toMatch(/CREATE POLICY[^;]*TO service_role/);
+    expect(sql).not.toMatch(/FOR INSERT/);
     expect(sql).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|LEAD_SYNC_TOKEN|SHEET_EXEC_URL/);
   });
 });
