@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth.server";
+import { recordAdminAudit, snapshotRow } from "@/lib/admin-audit.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -147,6 +148,14 @@ export const createInvoice = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "invoice.create",
+      targetTable: "invoices",
+      targetId: row.id,
+      summary: row.invoice_number,
+      after: { status: row.status, total: row.total, currency: row.currency },
+    });
 
     // In-app notifications: learner + admins
     try {
@@ -170,11 +179,21 @@ export const updateInvoiceStatus = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "invoices", data.id, "id, invoice_number, status");
     const patch: any = { status: data.status };
     if (data.status === "paid") patch.paid_at = new Date().toISOString();
     if (data.status !== "paid") patch.paid_at = null;
     const { error } = await supabaseAdmin.from("invoices").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "invoice.status",
+      targetTable: "invoices",
+      targetId: data.id,
+      summary: typeof before?.invoice_number === "string" ? `${before.invoice_number} → ${data.status}` : data.status,
+      before,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 
@@ -185,8 +204,17 @@ export const deleteInvoice = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "invoices", data.id, "id, invoice_number, status, total, currency");
     const { error } = await supabaseAdmin.from("invoices").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "invoice.delete",
+      targetTable: "invoices",
+      targetId: data.id,
+      summary: typeof before?.invoice_number === "string" ? before.invoice_number : null,
+      before,
+    });
     return { ok: true };
   });
 
@@ -726,6 +754,14 @@ export const recordPayment = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "payment.record",
+      targetTable: "payments",
+      targetId: pay.id,
+      summary: `${data.mode} ${data.status}`,
+      after: { invoice_id: data.invoiceId ?? null, amount: data.amount, currency: data.currency, status: data.status },
+    });
 
     // Auto-mark invoice paid when successful payments cover the total
     if (data.invoiceId && data.status === "success") {
@@ -756,8 +792,18 @@ export const updatePaymentStatus = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     await assertFinanceWrite(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const before = await snapshotRow(supabaseAdmin, "payments", data.id, "id, status, invoice_id, amount, currency");
     const { error } = await supabaseAdmin.from("payments").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "payment.status",
+      targetTable: "payments",
+      targetId: data.id,
+      summary: data.status,
+      before,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 

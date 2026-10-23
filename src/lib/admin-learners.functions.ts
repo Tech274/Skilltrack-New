@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth.server";
+import { recordAdminAudit, snapshotRow } from "@/lib/admin-audit.server";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -156,6 +157,14 @@ export const createLearner = createServerFn({ method: "POST" })
 
     // Ensure 'learner' role exists (trigger does this; safety net)
     await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "learner" as any }).select().maybeSingle();
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learner.create",
+      targetTable: "profiles",
+      targetId: userId,
+      summary: data.display_name,
+      after: { display_name: data.display_name },
+    });
 
     return { id: userId };
   });
@@ -178,8 +187,18 @@ export const updateLearner = createServerFn({ method: "POST" })
     const patch: any = {};
     for (const [k, v] of Object.entries(rest)) if (v !== undefined) patch[k] = v;
     if (Object.keys(patch).length === 0) return { ok: true };
+    const before = await snapshotRow(supabaseAdmin, "profiles", id, "id, display_name, headline, country, target_role, timezone");
     const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learner.update",
+      targetTable: "profiles",
+      targetId: id,
+      summary: typeof patch.display_name === "string" ? patch.display_name : id,
+      before,
+      after: patch,
+    });
     return { ok: true };
   });
 
@@ -193,6 +212,14 @@ export const setLearnerStatus = createServerFn({ method: "POST" })
     const ban_duration = data.status === "disabled" ? "876000h" : "none";
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.id, { ban_duration } as any);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learner.status",
+      targetTable: "auth.users",
+      targetId: data.id,
+      summary: data.status,
+      after: { status: data.status },
+    });
     return { ok: true };
   });
 
@@ -259,5 +286,12 @@ export const importLearnersCsv = createServerFn({ method: "POST" })
 
     const created = results.filter((r) => r.status === "created").length;
     const errors = results.length - created;
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "learner.import",
+      targetTable: "profiles",
+      summary: `created ${created}, failed ${errors}`,
+      after: { total: results.length, created, errors },
+    });
     return { total: results.length, created, errors, results };
   });

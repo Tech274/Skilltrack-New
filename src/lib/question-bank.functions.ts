@@ -5,6 +5,7 @@
 // enforces this on the table — server functions use service role and re-check
 // the caller's role before writing/reading global rows.
 
+import { recordAdminAudit, snapshotRow } from "@/lib/admin-audit.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -95,13 +96,31 @@ export const upsertQuestion = createServerFn({ method: "POST" })
     const payload: any = { ...data, created_by: context.userId };
     if (payload.reference_url === "") payload.reference_url = null;
     if (data.id) {
+      const before = await snapshotRow(supabaseAdmin, "question_bank", data.id, "id, question_type, difficulty, active");
       const { id, ...rest } = payload;
       const { error } = await supabaseAdmin.from("question_bank").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
+      await recordAdminAudit(supabaseAdmin, {
+        actorId: context.userId,
+        action: "question_bank.update",
+        targetTable: "question_bank",
+        targetId: id,
+        summary: data.question_text.slice(0, 120),
+        before,
+        after: { question_type: data.question_type, difficulty: data.difficulty },
+      });
       return { id };
     }
     const { data: row, error } = await supabaseAdmin.from("question_bank").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "question_bank.create",
+      targetTable: "question_bank",
+      targetId: row!.id,
+      summary: data.question_text.slice(0, 120),
+      after: { question_type: data.question_type, difficulty: data.difficulty },
+    });
     return { id: row!.id };
   });
 
@@ -113,8 +132,16 @@ export const deleteQuestion = createServerFn({ method: "POST" })
     const { data: existing } = await supabaseAdmin
       .from("question_bank").select("org_id").eq("id", data.id).maybeSingle();
     await assertCanManage(context.supabase, context.userId, existing?.org_id ?? null);
+    const before = await snapshotRow(supabaseAdmin, "question_bank", data.id, "id, question_type, difficulty, active");
     const { error } = await supabaseAdmin.from("question_bank").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "question_bank.delete",
+      targetTable: "question_bank",
+      targetId: data.id,
+      before,
+    });
     return { ok: true };
   });
 
@@ -136,5 +163,14 @@ export const importQuestions = createServerFn({ method: "POST" })
     }));
     const { error, count } = await supabaseAdmin.from("question_bank").insert(payload, { count: "exact" });
     if (error) throw new Error(error.message);
-    return { inserted: count ?? payload.length };
+    const inserted = count ?? payload.length;
+    await recordAdminAudit(supabaseAdmin, {
+      actorId: context.userId,
+      action: "question_bank.import",
+      targetTable: "question_bank",
+      targetId: data.org_id ?? null,
+      summary: `imported ${inserted}`,
+      after: { inserted },
+    });
+    return { inserted };
   });
