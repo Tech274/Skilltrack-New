@@ -13,7 +13,7 @@ export function HomeBelowFold() {
     <div className="[content-visibility:auto] [contain-intrinsic-size:auto_48rem]">
       <section className="border-t border-border/60">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <div className="flex items-end justify-between gap-6">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="font-mono text-xs uppercase tracking-wider text-accent">Catalog</div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -22,7 +22,7 @@ export function HomeBelowFold() {
             </div>
             <Link
               to="/certifications"
-              className="hidden md:inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               All certifications <ArrowRight size={14} />
             </Link>
@@ -33,7 +33,7 @@ export function HomeBelowFold() {
               <Link
                 key={c.slug}
                 to="/certifications"
-                className="group rounded-xl border border-border bg-surface p-6 transition-all hover:border-primary/40 hover:bg-surface-elevated"
+                className="rounded-xl border border-border bg-surface p-6 transition-all hover:border-primary/40 hover:bg-surface-elevated"
               >
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-lg font-semibold">{c.name}</h3>
@@ -41,10 +41,9 @@ export function HomeBelowFold() {
                     {String(catalogStats.byCategory[c.slug] ?? 0).padStart(2, "0")}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{c.blurb}</p>
-                <div className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">
-                  View certifications <ArrowRight size={12} />
-                </div>
+                <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
+                  {c.blurb}
+                </p>
               </Link>
             ))}
           </div>
@@ -84,7 +83,7 @@ export function HomeBelowFold() {
                 Twenty minutes with us and you'll leave with a shortlist, a target exam date, and a
                 prep plan that fits the hours you actually have.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8">
                 <Link
                   to="/book-a-call"
                   search={(prev) => ({
@@ -94,13 +93,6 @@ export function HomeBelowFold() {
                   className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-card"
                 >
                   Book free diagnostic <ArrowRight size={16} />
-                </Link>
-                <Link
-                  to="/enterprise"
-                  resetScroll
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-surface/60 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-elevated"
-                >
-                  Talk to enterprise
                 </Link>
               </div>
             </div>

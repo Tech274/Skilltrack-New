@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { hasSalesWhatsApp, waLink, SALES_WHATSAPP_DISPLAY } from "@/config/contact";
 import { CalendarCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 
 /** Same-origin endpoint that returns real JSON {ok:true|false}. */
 import { submitLead, newSubmissionId } from "@/lib/leads";
@@ -169,8 +170,14 @@ function BookACallPage() {
           {hasSalesWhatsApp && (
             <p className="mt-2 text-sm text-muted-foreground">
               WhatsApp us:{" "}
-              <a href={waLink()} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
+              <a
+                href={waLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+              >
                 {SALES_WHATSAPP_DISPLAY}
+                <ExternalLinkMarker className="size-3" />
               </a>
             </p>
           )}

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Award, Check, X, Plus, RotateCcw } from "lucide-react";
-import { certifications } from "@/lib/certifications";
+import { PASS_OUTLOOK, certifications } from "@/lib/certifications";
 import { CertIqTabs } from "@/components/certiq-tabs";
 import { ResultsAuthGate, useResultsUnlock } from "@/components/results-auth-gate";
 import { AdvisorCard } from "@/components/advisor-card";
@@ -64,7 +64,6 @@ function ComparePage() {
           highestSalary: maxBy(items, (c) => c.avgSalary),
           highestDemand: maxBy(items, (c) => c.demandScore),
           bestROI: maxBy(items, (c) => c.roiScore),
-          easiest: maxBy(items, (c) => c.successRate),
         }
       : null;
 
@@ -127,7 +126,7 @@ function ComparePage() {
             preview={
               <div className="space-y-2">
                 <div className="text-sm font-medium">Side-by-side comparison</div>
-                <div className="font-mono text-2xl font-semibold">$000 · 00% · ROI 00</div>
+                <div className="font-mono text-2xl font-semibold">$000 · ROI 00</div>
                 <div className="text-xs text-muted-foreground">Best cost, salary, demand and ROI</div>
               </div>
             }
@@ -137,14 +136,13 @@ function ComparePage() {
 
       {/* Winners */}
       {unlocked && winners && items.length >= 2 && (
-        <div className="mt-8 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-8 grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           {[
             { label: "Lowest cost", c: winners.cheapest },
             { label: "Shortest exam", c: winners.fastestExam },
             { label: "Highest salary", c: winners.highestSalary },
             { label: "Highest demand", c: winners.highestDemand },
             { label: "Best ROI", c: winners.bestROI },
-            { label: "Easiest pass", c: winners.easiest },
           ].map((w) => (
             <div key={w.label} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex items-center gap-1.5 text-xs text-accent">
@@ -208,7 +206,7 @@ function ComparePage() {
             <Row label="Duration" items={items.map((c) => `${c.durationMin} min`)} mono />
             <Row label="Passing score" items={items.map((c) => String(c.passingScore))} mono />
             <Row label="Validity" items={items.map((c) => `${c.validityYears} yr`)} mono />
-            <Row label="Success rate" items={items.map((c) => `${c.successRate}%`)} mono highlightIdx={idxOf(items, winners?.easiest)} />
+            <Row label="Pass outlook" items={items.map(() => PASS_OUTLOOK)} />
             <Row label="Avg salary" items={items.map((c) => formatSalary(c.avgSalary, regionCode))} mono highlightIdx={idxOf(items, winners?.highestSalary)} />
             <Row label="Demand score" items={items.map((c) => String(c.demandScore))} mono highlightIdx={idxOf(items, winners?.highestDemand)} />
             <Row label="Open roles" items={items.map((c) => c.jobOpenings.toLocaleString())} mono />

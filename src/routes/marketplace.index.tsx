@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 import {
   listPrepSkuTypeHubs,
   MARKETPLACE_TILES,
@@ -158,7 +159,7 @@ function TileBody({ tile, external }: { tile: MarketplaceTile; external?: boolea
       <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
         {external ? (
           <>
-            Open platform <ExternalLink size={14} />
+            Open platform <ExternalLinkMarker className="size-3.5" />
           </>
         ) : (
           <>

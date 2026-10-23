@@ -28,12 +28,12 @@ export const OEMS: Oem[] = [
   { slug: "gcp", name: "Google Cloud", blurb: "ACE → Professional Architect", localSrc: "/logos/oem/gcp.svg", logoLayout: "wordmark", color: "#4285F4" },
   { slug: "salesforce", name: "Salesforce", blurb: "Admin → Consultant tracks", localSrc: "/logos/oem/salesforce.png", logoLayout: "wordmark", color: "#00A1E0" },
   { slug: "servicenow", name: "ServiceNow", blurb: "CSA → CAD paths", localSrc: "/logos/oem/servicenow-white.png", logoLayout: "wordmark", whiteArtwork: true, color: "#62D84E" },
-  { slug: "pmi", name: "PMI", blurb: "PMP & CAPM prep", color: "#B32134" },
+  { slug: "pmi", name: "PMI", blurb: "PMP & CAPM prep", localSrc: "/logos/oem/pmi.png", logoLayout: "wordmark", color: "#B32134" },
   { slug: "comptia", name: "CompTIA", blurb: "A+, Network+, Security+", localSrc: "/logos/oem/comptia.png", logoLayout: "wordmark", color: "#E31837" },
   { slug: "hashicorp", name: "HashiCorp", blurb: "Terraform Associate", localSrc: "/logos/oem/hashicorp-light.png", whiteArtwork: true, color: "#7B42BC" },
   { slug: "snowflake", name: "Snowflake", blurb: "SnowPro Core → Advanced", localSrc: "/logos/oem/snowflake-bug.svg", color: "#29B5E8" },
   { slug: "databricks", name: "Databricks", blurb: "Data Engineer Associate", localSrc: "/logos/oem/databricks.png", color: "#FF3621" },
-  { slug: "cisco", name: "Cisco", blurb: "CCNA networking track", logo: "cisco", color: "#049FD9" },
+  { slug: "cisco", name: "Cisco", blurb: "CCNA networking track", localSrc: "/logos/oem/cisco.svg", color: "#049FD9" },
   { slug: "kubernetes", name: "CNCF / Kubernetes", blurb: "CKA · CKAD · KCNA", localSrc: "/logos/oem/kubernetes.svg", color: "#326CE5" },
 ];
 
@@ -73,6 +73,19 @@ function LogoMark({ oem }: { oem: Oem }) {
   );
 }
 
+function OemTileCopy({ oem }: { oem: Oem }) {
+  return (
+      <div className="min-w-0 flex-1">
+      <div className="break-words text-sm font-semibold leading-snug text-foreground">
+        {oem.name}
+      </div>
+      <div className="mt-0.5 break-words text-pretty text-xs leading-snug text-muted-foreground">
+        {oem.blurb}
+      </div>
+    </div>
+  );
+}
+
 export function OemDoorway() {
   return (
     <section className="border-t border-border/60 bg-surface/30" aria-labelledby="oem-doorway">
@@ -91,22 +104,19 @@ export function OemDoorway() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {OEMS.map((oem) => (
             <Link
               key={oem.slug}
               to="/assessment"
               search={{ oem: oem.slug }}
-              className="group flex items-center gap-4 rounded-xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
+              className="group relative flex items-start gap-3 rounded-xl border border-border bg-surface p-4 pr-8 transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
             >
               <LogoMark oem={oem} />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-foreground">{oem.name}</div>
-                <div className="truncate text-xs text-muted-foreground">{oem.blurb}</div>
-              </div>
+              <OemTileCopy oem={oem} />
               <ArrowRight
                 size={14}
-                className="ml-auto shrink-0 text-accent opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-3 top-4 shrink-0 text-accent opacity-0 transition-opacity group-hover:opacity-100"
               />
             </Link>
           ))}
@@ -119,22 +129,19 @@ export function OemDoorway() {
 export function OemTiles({ limit }: { limit?: number }) {
   const items = typeof limit === "number" ? OEMS.slice(0, limit) : OEMS;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((oem) => (
         <Link
           key={oem.slug}
           to="/assessment"
           search={{ oem: oem.slug }}
-          className="group flex items-center gap-4 rounded-xl border border-border bg-surface/70 p-4 text-left backdrop-blur transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
+          className="group relative flex items-start gap-3 rounded-xl border border-border bg-surface/70 p-4 pr-8 text-left backdrop-blur transition-all hover:border-primary/40 hover:bg-surface-elevated hover:shadow-elevated"
         >
           <LogoMark oem={oem} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-foreground">{oem.name}</div>
-            <div className="truncate text-xs text-muted-foreground">{oem.blurb}</div>
-          </div>
+          <OemTileCopy oem={oem} />
           <ArrowRight
             size={14}
-            className="ml-auto shrink-0 text-accent opacity-0 transition-opacity group-hover:opacity-100"
+            className="absolute right-3 top-4 shrink-0 text-accent opacity-0 transition-opacity group-hover:opacity-100"
           />
         </Link>
       ))}

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { hasSalesWhatsApp, waLink } from "@/config/contact";
 import { ArrowRight, Mail, CalendarClock, Building2 } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -34,8 +35,14 @@ function Contact() {
         {hasSalesWhatsApp && (
           <>
             {" "}
-            <a href={waLink()} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
+            <a
+              href={waLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+            >
               WhatsApp us
+              <ExternalLinkMarker className="size-3" />
             </a>
           </>
         )}

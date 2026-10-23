@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { ArrowRight, FlaskConical } from "lucide-react";
+import { FlaskConical } from "lucide-react";
+import { ExternalLinkMarker } from "@/components/external-link";
 import { buildHandoffUrl, SKILLHUB_BASE_URL } from "@/lib/handoff";
 import { useHandoffContext } from "@/hooks/use-handoff-context";
 
@@ -64,9 +65,11 @@ function LabsRedirectFallback() {
       <div className="mt-10">
         <a
           href={hubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-card"
         >
-          Continue to SkillHub <ArrowRight size={16} />
+          Continue to SkillHub <ExternalLinkMarker className="size-4" />
         </a>
       </div>
     </div>
