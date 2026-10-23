@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, Lock, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { submitLead, newSubmissionId } from "@/lib/leads";
+import { MessagingConsentField } from "@/components/messaging-consent";
 const keyFor = (feature: string) => `skilltrack.unlock.${feature}`;
 
 /** All CertIQ soft-gated features — one sign-in unlocks every tool. */
@@ -76,6 +77,9 @@ const accountSchema = z.object({
   username: z.string().trim().min(2, "Please enter a username").max(60),
   email: z.string().trim().email("Please enter a valid email").max(255),
   phone: z.string().trim().min(6, "Please enter a phone or WhatsApp number").max(30),
+  messagingConsent: z.literal(true, {
+    message: "Please agree to be contacted before submitting.",
+  }),
 });
 
 export function ResultsAuthGate({
@@ -100,6 +104,7 @@ export function ResultsAuthGate({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState(""); // honeypot
+  const [messagingConsent, setMessagingConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -138,7 +143,7 @@ export function ResultsAuthGate({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!mounted || saving) return;
-    const parsed = accountSchema.safeParse({ username, email, phone });
+    const parsed = accountSchema.safeParse({ username, email, phone, messagingConsent });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Please check your details.");
       return;
@@ -164,6 +169,7 @@ export function ResultsAuthGate({
           .slice(0, 1000),
         company_website: companyWebsite,
         submission_id: submissionId,
+        messaging_consent: true,
       });
       if (result.ok) {
         onUnlocked();
@@ -251,6 +257,11 @@ export function ResultsAuthGate({
               onChange={(e) => setCompanyWebsite(e.target.value)}
               className="hidden"
               aria-hidden="true"
+            />
+            <MessagingConsentField
+              id="results-messaging-consent"
+              checked={messagingConsent}
+              onChange={setMessagingConsent}
             />
             {error && (
               <p role="alert" className="text-sm text-warning">

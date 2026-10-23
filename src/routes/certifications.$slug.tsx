@@ -1,4 +1,6 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect, useNavigate } from "@tanstack/react-router";
+import { createIsomorphicFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import {
   ArrowRight,
   Bookmark,
@@ -12,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getCert, certifications } from "@/lib/certifications";
+import { certAliasLocationHref } from "@/lib/cert-aliases";
 import { getMarketplaceCertByCatalogSlug } from "@/lib/marketplace";
 import { brandForVendor } from "@/lib/vendor-brands";
 import { VendorLogo } from "@/components/cert-marketplace-card";
@@ -26,10 +29,25 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const markCertNotFound = createIsomorphicFn()
+  .server(() => {
+    setResponseStatus(404);
+  })
+  .client(() => {});
+
 export const Route = createFileRoute("/certifications/$slug")({
+  beforeLoad: ({ params, location }) => {
+    const href = certAliasLocationHref(`/certifications/${params.slug}`, location.href);
+    if (href) {
+      throw redirect({ href, statusCode: 301 });
+    }
+  },
   loader: ({ params }) => {
     const cert = getCert(params.slug);
-    if (!cert) throw notFound();
+    if (!cert) {
+      markCertNotFound();
+      throw notFound();
+    }
     return { cert };
   },
   head: ({ loaderData }) => {
@@ -65,8 +83,11 @@ export const Route = createFileRoute("/certifications/$slug")({
   notFoundComponent: () => (
     <div className="mx-auto max-w-2xl px-6 py-32 text-center">
       <h1 className="text-3xl font-semibold">Certification not found</h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        That address does not match a published guide.
+      </p>
       <Link to="/certifications" className="mt-6 inline-block text-accent">
-        ← Back to certifications
+        Browse the certification hub
       </Link>
     </div>
   ),

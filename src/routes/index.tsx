@@ -77,6 +77,13 @@ function HomePage() {
                 <ArrowRight size={16} />
               </a>
               <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-surface/60 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur hover:bg-surface"
+              >
+                Sign up
+              </Link>
+              <Link
                 to="/book-a-call"
                 search={(prev) => ({
                   ...(prev as Record<string, string>),

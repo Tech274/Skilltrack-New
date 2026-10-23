@@ -9,7 +9,11 @@ const opt = (max: number) => z.string().trim().max(max).optional().default("");
 export const leadSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(100, "Name is too long"),
   email: z.string().trim().email("Please enter a valid email").max(255, "Email is too long"),
-  phone: z.string().trim().min(1, "Please enter a phone number").max(30, "Phone number is too long"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Please enter a phone number")
+    .max(30, "Phone number is too long"),
   certs: opt(200),
   timing: opt(200),
   hear_about: opt(200),
@@ -21,6 +25,9 @@ export const leadSchema = z.object({
   submission_id: z.string().trim().min(8, "Invalid submission").max(64, "Invalid submission"),
   source: z.enum(LEAD_SOURCES, { message: "Invalid lead source" }),
   company_website: z.string().max(200).optional().default(""),
+  messaging_consent: z.literal(true, {
+    message: "Please agree to be contacted before submitting.",
+  }),
 });
 
 export type LeadInput = z.input<typeof leadSchema>;
@@ -28,6 +35,26 @@ export type SubmitLeadResult = { ok: true; id: string } | { ok: false; error: st
 
 export function newSubmissionId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+const CONSENT_PREFIX = "[dpdp] messaging_consent=true consent_at=";
+
+/** Keep a consent record inside notes when the dedicated columns are not migrated yet. */
+export function notesWithConsent(notes: string | null | undefined, consentAt: string): string {
+  const marker = `${CONSENT_PREFIX}${consentAt}`;
+  const base = (notes ?? "").trim();
+  if (base.includes(CONSENT_PREFIX)) return base.slice(0, 1000);
+  const room = 1000 - marker.length - (base ? 1 : 0);
+  const clipped = base.slice(0, Math.max(0, room)).trimEnd();
+  return (clipped ? `${clipped}\n${marker}` : marker).slice(0, 1000);
+}
+
+export function isMissingConsentColumn(
+  error: { code?: string; message?: string } | null | undefined,
+): boolean {
+  if (!error) return false;
+  if (error.code === "42703") return true;
+  return (error.message ?? "").includes("messaging_consent");
 }
 
 /** Posts a lead as JSON. Never throws; success only on a confirmed insert id. */

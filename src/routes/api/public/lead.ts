@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
-import { leadSchema } from "@/lib/leads";
+import { isMissingConsentColumn, leadSchema, notesWithConsent } from "@/lib/leads";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +41,7 @@ type LeadRow = {
 };
 
 /** Mirror a saved lead to the Sales Sheet. Never throws; result only updates the row. */
-async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
+async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow, consentAt: string) {
   let sheetError: string | null = null;
   try {
     const url = process.env["SHEET_EXEC_URL"];
@@ -65,6 +65,8 @@ async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
       utm_campaign: row.utm_campaign ?? "",
       page_path: row.page_path ?? "",
       submission_id: row.submission_id,
+      messaging_consent: "true",
+      messaging_consent_at: consentAt,
       Status: "New",
       token,
     });
@@ -82,7 +84,8 @@ async function syncToSheet(supabaseAdmin: any, id: string, row: LeadRow) {
     } catch {
       throw new Error(`Sheet returned non-JSON (HTTP ${res.status})`);
     }
-    if (out?.ok !== true) throw new Error(`Sheet rejected: ${String(out?.error ?? `HTTP ${res.status}`)}`);
+    if (out?.ok !== true)
+      throw new Error(`Sheet rejected: ${String(out?.error ?? `HTTP ${res.status}`)}`);
   } catch (e: any) {
     sheetError = String(e?.message ?? e ?? "Sheet sync failed").slice(0, 500);
   }
@@ -113,7 +116,10 @@ export const Route = createFileRoute("/api/public/lead")({
 
         const parsed = leadSchema.safeParse(payload);
         if (!parsed.success) {
-          return json({ ok: false, error: parsed.error.issues[0]?.message ?? "Please check the form." }, 400);
+          return json(
+            { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the form." },
+            400,
+          );
         }
         const d = parsed.data;
 
@@ -124,7 +130,9 @@ export const Route = createFileRoute("/api/public/lead")({
 
         const ip = clientIp(request);
         const ipHash = ip
-          ? createHash("sha256").update(ip + (process.env["LEAD_IP_SALT"] ?? "")).digest("hex")
+          ? createHash("sha256")
+              .update(ip + (process.env["LEAD_IP_SALT"] ?? ""))
+              .digest("hex")
           : null;
 
         if (ipHash) {
@@ -136,10 +144,14 @@ export const Route = createFileRoute("/api/public/lead")({
             .gte("created_at", since);
           if (error) console.error("[lead] rate-limit query failed", error.message);
           else if ((count ?? 0) >= 5) {
-            return json({ ok: false, error: "Too many requests. Please try again in a few minutes." }, 429);
+            return json(
+              { ok: false, error: "Too many requests. Please try again in a few minutes." },
+              429,
+            );
           }
         }
 
+        const consentAt = new Date().toISOString();
         const row: LeadRow = {
           source: d.source,
           name: d.name,
@@ -157,11 +169,28 @@ export const Route = createFileRoute("/api/public/lead")({
           ip_hash: ipHash,
         };
 
-        const { data: inserted, error: insertError } = await supabaseAdmin
-          .from("leads")
-          .insert(row)
-          .select("id")
-          .single();
+        const withConsent = {
+          ...row,
+          messaging_consent: true,
+          messaging_consent_at: consentAt,
+        };
+
+        let insertedId: string | undefined;
+        let insertError: { code?: string; message?: string } | null = null;
+        const first = await supabaseAdmin.from("leads").insert(withConsent).select("id").single();
+        if (first.error && isMissingConsentColumn(first.error)) {
+          // Columns are not in the live database until drizzle/migrations/0004_leads_messaging_consent.sql is applied.
+          const fallback = await supabaseAdmin
+            .from("leads")
+            .insert({ ...row, notes: notesWithConsent(row.notes, consentAt) })
+            .select("id")
+            .single();
+          insertedId = fallback.data?.id;
+          insertError = fallback.error;
+        } else {
+          insertedId = first.data?.id;
+          insertError = first.error;
+        }
 
         if (insertError) {
           if (insertError.code === "23505") {
@@ -173,11 +202,21 @@ export const Route = createFileRoute("/api/public/lead")({
             if (existing?.id) return json({ ok: true, id: existing.id, duplicate: true });
           }
           console.error("[lead] insert failed", insertError.code, insertError.message);
-          return json({ ok: false, error: "We could not save your request. Please try again." }, 500);
+          return json(
+            { ok: false, error: "We could not save your request. Please try again." },
+            500,
+          );
         }
 
-        await syncToSheet(supabaseAdmin, inserted.id, row);
-        return json({ ok: true, id: inserted.id });
+        if (!insertedId) {
+          return json(
+            { ok: false, error: "We could not save your request. Please try again." },
+            500,
+          );
+        }
+
+        await syncToSheet(supabaseAdmin, insertedId, row, consentAt);
+        return json({ ok: true, id: insertedId });
       },
     },
   },
