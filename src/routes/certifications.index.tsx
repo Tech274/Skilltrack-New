@@ -1,33 +1,59 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Clock3 } from "lucide-react";
-import { z } from "zod";
-import { CertMarketplaceCard } from "@/components/cert-marketplace-card";
+import { useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
+import { CertBrowseEmpty, CertBrowseGrid, CertBrowseToolbar } from "@/components/cert-browse";
+import {
+  applyCertBrowse,
+  certBrowseFacets,
+  groupCertBrowseByLevel,
+  isCertBrowseSort,
+  listCertBrowseItems,
+  type CertBrowseSort,
+} from "@/lib/cert-catalog-browse";
 import {
   getOem,
-  groupPathsByLevel,
-  OEM_CATALOGUE,
   getCatalogStats,
+  OEM_CATALOGUE,
   type OemCatalogueEntry,
-  type OemPathTile,
 } from "@/lib/oem-catalogue";
-
-const searchSchema = z.object({
-  oem: z.string().optional(),
-});
 
 /** Group path tiles by level when an OEM has many Catalogue rows (e.g. Cisco, Salesforce). */
 const GROUP_BY_LEVEL_THRESHOLD = 20;
 
+type CertSearch = {
+  oem?: string;
+  q?: string;
+  vendor?: string;
+  level?: string;
+  domain?: string;
+  sort?: CertBrowseSort;
+};
+
+function textParam(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 export const Route = createFileRoute("/certifications/")({
-  validateSearch: searchSchema,
+  validateSearch: (search: Record<string, unknown>): CertSearch => ({
+    oem: textParam(search.oem),
+    q: textParam(search.q),
+    vendor: textParam(search.vendor),
+    level: textParam(search.level),
+    domain: textParam(search.domain),
+    sort: (() => {
+      const sort = textParam(search.sort);
+      return sort && isCertBrowseSort(sort) ? sort : undefined;
+    })(),
+  }),
   head: () => ({
     meta: [
       { title: "Certifications — SkillTrack" },
       {
         name: "description",
         content:
-          "Browse certification guides by OEM — AWS, Azure, Google Cloud, Salesforce, and more. Pick a vendor, then open a guide.",
+          "Browse certification guides by OEM — AWS, Azure, Google Cloud, Salesforce, and more. Search, filter by vendor, level, and domain, and compare exam fees.",
       },
       { property: "og:title", content: "Certifications — SkillTrack" },
       {
@@ -44,20 +70,83 @@ export const Route = createFileRoute("/certifications/")({
 });
 
 function CertsPage() {
-  const { oem: oemParam } = Route.useSearch();
-  const oem = getOem(oemParam);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const oem = getOem(search.oem);
+  const allItems = useMemo(() => listCertBrowseItems(), []);
+  const allFacets = useMemo(() => certBrowseFacets(allItems), [allItems]);
 
-  if (oemParam && oem) {
-    return <OemDetailView oem={oem} />;
+  function patchSearch(patch: Partial<CertSearch>) {
+    void navigate({
+      to: "/certifications",
+      search: (prev) => {
+        const next: CertSearch = { ...prev, ...patch };
+        (Object.keys(next) as (keyof CertSearch)[]).forEach((key) => {
+          if (next[key] === undefined || next[key] === "") delete next[key];
+        });
+        return next;
+      },
+      replace: true,
+      resetScroll: false,
+    });
   }
 
-  return <OemGridView />;
+  if (search.oem && oem) {
+    return (
+      <OemDetailView
+        oem={oem}
+        search={search}
+        allItems={allItems}
+        allFacets={allFacets}
+        onPatch={patchSearch}
+      />
+    );
+  }
+
+  return (
+    <OemGridView search={search} allItems={allItems} allFacets={allFacets} onPatch={patchSearch} />
+  );
 }
 
-function OemGridView() {
+function OemGridView({
+  search,
+  allItems,
+  allFacets,
+  onPatch,
+}: {
+  search: CertSearch;
+  allItems: ReturnType<typeof listCertBrowseItems>;
+  allFacets: ReturnType<typeof certBrowseFacets>;
+  onPatch: (patch: Partial<CertSearch>) => void;
+}) {
   const stats = getCatalogStats();
-  const withGuides = stats.oems;
-  const totalGuides = stats.liveGuides;
+  const browseActive = Boolean(
+    search.q || search.vendor || search.level || search.domain || search.sort,
+  );
+  const sort = search.sort ?? "name";
+  const results = browseActive
+    ? applyCertBrowse(allItems, {
+        q: search.q,
+        vendor: search.vendor,
+        level: search.level,
+        domain: search.domain,
+        sort,
+      })
+    : [];
+  const guides = applyCertBrowse(
+    allItems.filter((item) => item.guideSlug),
+    { sort: "name" },
+  );
+
+  function clearFilters() {
+    onPatch({
+      q: undefined,
+      vendor: undefined,
+      level: undefined,
+      domain: undefined,
+      sort: undefined,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16">
@@ -67,16 +156,57 @@ function OemGridView() {
           Choose a vendor. Open a guide.
         </h1>
         <p className="mt-3 text-muted-foreground">
-          {totalGuides} live guides across {withGuides} OEMs · more vendors listed as Wave B. Pick
-          an OEM to see its certification types, then open a full guide.
+          {stats.liveGuides} live guides across {stats.oems} OEMs · more vendors listed as Wave B.
+          Search the catalogue, or pick an OEM to see its certification types.
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {OEM_CATALOGUE.map((entry) => (
-          <OemTile key={entry.slug} oem={entry} />
-        ))}
-      </div>
+      <CertBrowseToolbar
+        q={search.q ?? ""}
+        vendor={search.vendor ?? ""}
+        level={search.level ?? ""}
+        domain={search.domain ?? ""}
+        sort={sort}
+        facets={allFacets}
+        onQ={(value) => onPatch({ q: value || undefined })}
+        onVendor={(slug) => onPatch({ vendor: slug || undefined })}
+        onLevel={(value) => onPatch({ level: value || undefined })}
+        onDomain={(value) => onPatch({ domain: value || undefined })}
+        onSort={(value) => onPatch({ sort: value === "name" ? undefined : value })}
+      />
+
+      {browseActive ? (
+        <section className="mt-10">
+          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {results.length} certification{results.length === 1 ? "" : "s"}
+          </div>
+          {results.length === 0 ? (
+            <CertBrowseEmpty onClear={clearFilters} />
+          ) : (
+            <CertBrowseGrid items={results} showVendor />
+          )}
+        </section>
+      ) : (
+        <>
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {OEM_CATALOGUE.map((entry) => (
+              <OemTile key={entry.slug} oem={entry} />
+            ))}
+          </div>
+
+          <section className="mt-14">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Guides
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">Exam fee and duration</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Live guides include the exam fee and duration from the catalogue. Coming-soon exams
+              stay unpriced until a guide is published.
+            </p>
+            <CertBrowseGrid items={guides} showVendor />
+          </section>
+        </>
+      )}
     </div>
   );
 }
@@ -144,10 +274,51 @@ function OemLogoMark({ oem }: { oem: OemCatalogueEntry }) {
   );
 }
 
-function OemDetailView({ oem }: { oem: OemCatalogueEntry }) {
-  const hasPaths = oem.pathCount > 0;
-  const hasGuides = oem.guides.length > 0;
-  const groupByLevel = hasPaths && oem.pathCount >= GROUP_BY_LEVEL_THRESHOLD;
+function OemDetailView({
+  oem,
+  search,
+  allItems,
+  allFacets,
+  onPatch,
+}: {
+  oem: OemCatalogueEntry;
+  search: CertSearch;
+  allItems: ReturnType<typeof listCertBrowseItems>;
+  allFacets: ReturnType<typeof certBrowseFacets>;
+  onPatch: (patch: Partial<CertSearch>) => void;
+}) {
+  const scoped = useMemo(
+    () => allItems.filter((item) => item.vendorSlug === oem.slug),
+    [allItems, oem.slug],
+  );
+  const scopedFacets = useMemo(() => certBrowseFacets(scoped), [scoped]);
+  const facets = {
+    ...scopedFacets,
+    vendors: allFacets.vendors,
+  };
+  const defaultSort: CertBrowseSort = scopedFacets.hasLevel ? "level" : "name";
+  const sort = search.sort ?? defaultSort;
+  const filtered = applyCertBrowse(scoped, {
+    q: search.q,
+    level: search.level,
+    domain: search.domain,
+    sort,
+  });
+  const filtering = Boolean(
+    search.q || search.level || search.domain || (search.sort && search.sort !== defaultSort),
+  );
+  const showGroups = !filtering && oem.pathCount >= GROUP_BY_LEVEL_THRESHOLD && sort === "level";
+
+  function clearFilters() {
+    onPatch({
+      oem: oem.slug,
+      q: undefined,
+      vendor: undefined,
+      level: undefined,
+      domain: undefined,
+      sort: undefined,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16">
@@ -178,38 +349,48 @@ function OemDetailView({ oem }: { oem: OemCatalogueEntry }) {
         </div>
       </div>
 
-      {hasPaths ? (
-        groupByLevel ? (
-          <div className="mt-10 space-y-10">
-            {groupPathsByLevel(oem.paths).map((group) => (
-              <section key={group.level}>
-                <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  {group.level}
-                  <span className="ml-2 text-muted-foreground/70">({group.paths.length})</span>
-                </h2>
-                <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {group.paths.map((path) => (
-                    <PathTile key={path.examId} path={path} accent={oem.color} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {oem.paths.map((path) => (
-              <PathTile key={path.examId} path={path} accent={oem.color} />
-            ))}
-          </div>
-        )
-      ) : hasGuides ? (
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {oem.guides.map((c) => (
-            <CertMarketplaceCard key={c.slug} cert={c} variant="marketplace" />
+      <CertBrowseToolbar
+        q={search.q ?? ""}
+        vendor={oem.slug}
+        level={search.level ?? ""}
+        domain={search.domain ?? ""}
+        sort={sort}
+        facets={facets}
+        onQ={(value) => onPatch({ q: value || undefined })}
+        onVendor={(slug) =>
+          onPatch({
+            oem: slug || undefined,
+            vendor: undefined,
+          })
+        }
+        onLevel={(value) => onPatch({ level: value || undefined })}
+        onDomain={(value) => onPatch({ domain: value || undefined })}
+        onSort={(value) => onPatch({ sort: value === defaultSort ? undefined : value })}
+      />
+
+      {scoped.length === 0 ? (
+        <ComingSoonPanel oem={oem} />
+      ) : filtered.length === 0 ? (
+        <CertBrowseEmpty onClear={clearFilters} />
+      ) : showGroups ? (
+        <div className="mt-10 space-y-10">
+          {groupCertBrowseByLevel(filtered).map((group) => (
+            <section key={group.level}>
+              <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                {group.level}
+                <span className="ml-2 text-muted-foreground/70">({group.items.length})</span>
+              </h2>
+              <CertBrowseGrid items={group.items} accent={oem.color} />
+            </section>
           ))}
         </div>
       ) : (
-        <ComingSoonPanel oem={oem} />
+        <section className="mt-10">
+          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {filtered.length} certification{filtered.length === 1 ? "" : "s"}
+          </div>
+          <CertBrowseGrid items={filtered} accent={oem.color} />
+        </section>
       )}
     </div>
   );
@@ -225,60 +406,6 @@ function detailBlurb(oem: OemCatalogueEntry): string {
     return `${oem.guideCount} certification guide${oem.guideCount === 1 ? "" : "s"} for this vendor. Open a guide for domains, cost, demand, and salary.`;
   }
   return "Guides for this vendor are on the way. Book a call or start an assessment while we publish them.";
-}
-
-function PathTile({ path, accent }: { path: OemPathTile; accent: string }) {
-  if (path.guide) {
-    return <CertMarketplaceCard cert={path.guide} variant="marketplace" />;
-  }
-  return <ComingSoonPathCard path={path} accent={accent} />;
-}
-
-/** Non-linking tile for Catalogue exams without a live guide page yet. */
-function ComingSoonPathCard({ path, accent }: { path: OemPathTile; accent: string }) {
-  return (
-    <div
-      className="relative flex flex-col overflow-hidden rounded-xl border border-dashed border-border bg-surface/70 p-6"
-      style={{
-        backgroundImage: `linear-gradient(135deg, ${accent}0f 0%, transparent 55%)`,
-      }}
-    >
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 rounded-l-xl opacity-40"
-        style={{ backgroundColor: accent, width: 4 }}
-      />
-
-      <div className="flex items-start justify-between gap-3 pl-1">
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug text-foreground">
-            {path.name}
-          </h3>
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/80 bg-background/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          <Clock3 size={12} aria-hidden />
-          Coming soon
-        </span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 pl-1">
-        {path.code ? (
-          <span className="rounded-full border border-border/80 bg-background/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-            {path.code}
-          </span>
-        ) : null}
-        {path.level ? (
-          <span className="rounded-full border border-border/80 bg-background/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-            {path.level}
-          </span>
-        ) : null}
-      </div>
-
-      <p className="mt-auto pt-5 pl-1 text-sm text-muted-foreground">
-        Full guide not published yet — exam stays listed from the Catalogue.
-      </p>
-    </div>
-  );
 }
 
 function ComingSoonPanel({ oem }: { oem: OemCatalogueEntry }) {

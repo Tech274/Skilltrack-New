@@ -1,15 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import {
+  formatListedPrice,
+  listPrepBundles,
   listPrepSkuTypeHubs,
   MARKETPLACE_TILES,
+  priceSummaryForType,
+  priceSummaryLabel,
+  type MarketplaceCatalog,
   type MarketplaceTile,
+  type PrepBundleOffer,
   type PrepSkuTypeHub,
 } from "@/lib/marketplace";
+import { fetchPublicMarketplaceCatalog } from "@/lib/marketplace-catalog.server";
 import { buildHandoffUrl } from "@/lib/handoff";
 import { useHandoffContext } from "@/hooks/use-handoff-context";
 
 export const Route = createFileRoute("/marketplace/")({
+  loader: async () => {
+    const catalog = await fetchPublicMarketplaceCatalog();
+    return { catalog, bundles: listPrepBundles(catalog) };
+  },
   head: () => ({
     meta: [
       { title: "Marketplace — Prep SKUs & platforms | SkillTrack" },
@@ -34,6 +45,7 @@ export const Route = createFileRoute("/marketplace/")({
 
 function MarketplacePage() {
   const handoff = useHandoffContext();
+  const { catalog, bundles } = Route.useLoaderData();
   const typeHubs = listPrepSkuTypeHubs();
   const platformTiles = MARKETPLACE_TILES.filter((t) => t.kind === "platform");
 
@@ -50,7 +62,7 @@ function MarketplacePage() {
           </p>
           <Link
             to="/book-a-call"
-            search={{ utm_campaign: "marketplace" } as any}
+            search={{ utm_campaign: "marketplace" }}
             className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-card"
           >
             Talk to us to enrol
@@ -63,10 +75,27 @@ function MarketplacePage() {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {typeHubs.map((hub) => (
-              <TypeHubCard key={hub.type} hub={hub} />
+              <TypeHubCard key={hub.type} hub={hub} catalog={catalog} />
             ))}
           </div>
         </section>
+
+        {bundles.length > 0 ? (
+          <section className="mt-14">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Bundles
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">Prep bundles</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Each bundle is the prep types already listed for that certification.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {bundles.map((bundle) => (
+                <BundleCard key={bundle.id} bundle={bundle} />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-14">
           <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
@@ -117,7 +146,7 @@ function MarketplacePage() {
   );
 }
 
-function TypeHubCard({ hub }: { hub: PrepSkuTypeHub }) {
+function TypeHubCard({ hub, catalog }: { hub: PrepSkuTypeHub; catalog: MarketplaceCatalog }) {
   return (
     <Link
       to="/marketplace/$type"
@@ -131,10 +160,49 @@ function TypeHubCard({ hub }: { hub: PrepSkuTypeHub }) {
         {hub.label}
       </h2>
       <p className="mt-2 flex-1 text-sm text-muted-foreground">{hub.blurb}</p>
+      <div className="mt-4 font-mono text-sm font-semibold text-foreground">
+        {priceSummaryLabel(priceSummaryForType(hub.type, catalog))}
+      </div>
       <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
         Browse OEMs <ArrowRight size={14} />
       </div>
     </Link>
+  );
+}
+
+function BundleCard({ bundle }: { bundle: PrepBundleOffer }) {
+  const firstType = bundle.skuTypes[0];
+  return (
+    <div className="flex flex-col rounded-xl border border-border bg-surface p-6 shadow-card">
+      <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        Bundle
+      </div>
+      <h3 className="mt-3 text-lg font-semibold tracking-tight">{bundle.title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{bundle.certName}</p>
+      <ul className="mt-4 space-y-1.5 text-sm text-foreground">
+        {bundle.skuTypes.map((type, index) => (
+          <li key={type}>
+            <Link
+              to="/marketplace/$cert/$type"
+              params={{ cert: bundle.certKey, type }}
+              className="text-accent hover:underline"
+            >
+              {bundle.includes[index]}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-5 font-mono text-lg font-semibold">{formatListedPrice(bundle.price)}</div>
+      {firstType ? (
+        <Link
+          to="/marketplace/$cert/$type"
+          params={{ cert: bundle.certKey, type: firstType }}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent"
+        >
+          View prep <ArrowRight size={14} />
+        </Link>
+      ) : null}
+    </div>
   );
 }
 

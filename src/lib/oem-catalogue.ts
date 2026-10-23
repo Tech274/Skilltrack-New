@@ -178,6 +178,11 @@ function levelRank(level: string): number {
   return LEVEL_ORDER[level.trim().toLowerCase()] ?? 50;
 }
 
+/** Public rank for catalogue levels (Foundational → Expert). Unknown levels sort last. */
+export function catalogLevelRank(level: string): number {
+  return levelRank(level);
+}
+
 /**
  * Matcher for Catalogue exam ↔ live Certification guide:
  * 1. Prefer exact exam `code` (case-insensitive) against Certification.code.
@@ -353,5 +358,10 @@ export function getCatalogStats(): CatalogStats {
     liveGuides += live;
     for (const g of o.guides) byCategory[g.categorySlug] = (byCategory[g.categorySlug] ?? 0) + 1;
   }
-  return { liveGuides, oems: Object.values(byOem).filter((v) => v.live > 0).length, byOem, byCategory };
+  return {
+    liveGuides,
+    oems: Object.values(byOem).filter((v) => v.live > 0).length,
+    byOem,
+    byCategory,
+  };
 }

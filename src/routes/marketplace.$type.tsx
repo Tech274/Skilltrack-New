@@ -4,7 +4,11 @@ import {
   getPrepSkuTypeHub,
   listOemsForType,
   marketplaceOemLogoPath,
+  priceSummaryForType,
+  priceSummaryForTypeOem,
+  priceSummaryLabel,
   resolveMarketplaceOneSegment,
+  type MarketplaceCatalog,
   type MarketplaceOem,
   type PrepSkuTypeHub,
 } from "@/lib/marketplace";
@@ -57,7 +61,7 @@ export const Route = createFileRoute("/marketplace/$type")({
 });
 
 function MarketplaceTypeHubPage() {
-  const { hub, oems } = Route.useLoaderData();
+  const { hub, oems, catalog } = Route.useLoaderData();
 
   return (
     <div className="relative">
@@ -76,6 +80,9 @@ function MarketplaceTypeHubPage() {
           <div className="font-mono text-xs uppercase tracking-wider text-accent">Prep type</div>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{hub.label}</h1>
           <p className="mt-4 text-muted-foreground">{hub.blurb}</p>
+          <p className="mt-3 font-mono text-sm font-semibold text-foreground">
+            {priceSummaryLabel(priceSummaryForType(hub.type, catalog))}
+          </p>
         </div>
 
         <section className="mt-12">
@@ -84,7 +91,7 @@ function MarketplaceTypeHubPage() {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {oems.map((oem) => (
-              <OemCard key={oem.key} oem={oem} hub={hub} />
+              <OemCard key={oem.key} oem={oem} hub={hub} catalog={catalog} />
             ))}
           </div>
         </section>
@@ -93,7 +100,15 @@ function MarketplaceTypeHubPage() {
   );
 }
 
-function OemCard({ oem, hub }: { oem: MarketplaceOem; hub: PrepSkuTypeHub }) {
+function OemCard({
+  oem,
+  hub,
+  catalog,
+}: {
+  oem: MarketplaceOem;
+  hub: PrepSkuTypeHub;
+  catalog: MarketplaceCatalog;
+}) {
   return (
     <Link
       to="/marketplace/$cert/$type"
@@ -114,6 +129,9 @@ function OemCard({ oem, hub }: { oem: MarketplaceOem; hub: PrepSkuTypeHub }) {
         {oem.shortName}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">{oem.name}</p>
+      <p className="mt-3 font-mono text-sm font-semibold text-foreground">
+        {priceSummaryLabel(priceSummaryForTypeOem(hub.type, oem.key, catalog))}
+      </p>
       <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
         View certifications <ArrowRight size={14} />
       </div>

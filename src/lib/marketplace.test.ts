@@ -1,7 +1,9 @@
 import { SALES_WHATSAPP } from "@/config/contact";
 import { describe, expect, it } from "vitest";
 import {
+  buildStaticMarketplaceCatalog,
   CERT_TO_OEM,
+  formatListedPrice,
   getMarketplaceCert,
   getMarketplaceCertByCatalogSlug,
   getMarketplaceOem,
@@ -9,14 +11,20 @@ import {
   getPrepSkuTypeHub,
   listCertsForTypeOem,
   listOemsForType,
+  listPrepBundles,
   listPrepSkus,
   listPrepSkuTypeHubs,
+  listedSkuPrice,
   marketplaceOemLogoPath,
   MARKETPLACE_CERTS,
   MARKETPLACE_OEM_KEYS,
+  MARKETPLACE_PRICE_INR,
   MARKETPLACE_WHATSAPP_NUMBER_PLACEHOLDER,
   marketplaceWhatsAppUrl,
   oemKeyForCert,
+  prepBundleForCert,
+  priceSummaryForType,
+  priceSummaryLabel,
   resolveMarketplaceOneSegment,
   resolveMarketplaceTwoSegment,
 } from "./marketplace";
@@ -251,5 +259,68 @@ describe("marketplace catalog from DB rows", () => {
   it("returns null when no active OEMs so callers fall back to static", async () => {
     const { catalogFromDbRows } = await import("./marketplace-catalog");
     expect(catalogFromDbRows([], [], [])).toBeNull();
+  });
+});
+
+describe("marketplace prices and bundles", () => {
+  it("does not invent a price when the static catalogue has none", () => {
+    for (const key of EXPECTED_KEYS) {
+      for (const sku of listPrepSkus(key)) {
+        expect(sku.priceInr).toBeUndefined();
+        expect(listedSkuPrice(sku)).toBeNull();
+      }
+    }
+    expect(priceSummaryLabel(priceSummaryForType("mock"))).toBe("Price on request");
+    expect(formatListedPrice(null)).toBe("Price on request");
+
+    const bundles = listPrepBundles();
+    expect(bundles.map((bundle) => bundle.certKey)).toEqual([...EXPECTED_KEYS]);
+    for (const bundle of bundles) {
+      expect(bundle.includes).toEqual([
+        "Mocks",
+        "Practice question bank",
+        "Notes / blueprint",
+        "Labs",
+      ]);
+      expect(bundle.price).toBeNull();
+      expect(bundle.price).not.toEqual({ amount: MARKETPLACE_PRICE_INR, currency: "INR" });
+    }
+  });
+
+  it("sums a bundle only when every included SKU has a stored price in one currency", () => {
+    const catalog = buildStaticMarketplaceCatalog();
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku) => ({
+      ...sku,
+      priceInr: 100,
+      currency: "INR",
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toEqual({ amount: 400, currency: "INR" });
+
+    for (const key of ["az-104", "gcp-ace", "salesforce-admin"] as const) {
+      catalog.skusByCert[key] = catalog.skusByCert[key]!.map((sku) => ({
+        ...sku,
+        priceInr: sku.type === "mock" ? 100 : undefined,
+        currency: "INR",
+      }));
+    }
+    const exact = formatListedPrice({ amount: 100, currency: "INR" });
+    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe(exact);
+
+    catalog.skusByCert["az-104"] = catalog.skusByCert["az-104"]!.map((sku) =>
+      sku.type === "mock" ? { ...sku, priceInr: 250 } : sku,
+    );
+    expect(priceSummaryLabel(priceSummaryForType("mock", catalog))).toBe(`From ${exact}`);
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) =>
+      index === 0 ? { ...sku, currency: "USD" } : sku,
+    );
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
+
+    catalog.skusByCert["aws-saa"] = catalog.skusByCert["aws-saa"]!.map((sku, index) => ({
+      ...sku,
+      currency: "INR",
+      priceInr: index === 1 ? undefined : sku.priceInr,
+    }));
+    expect(prepBundleForCert("aws-saa", catalog)?.price).toBeNull();
   });
 });
