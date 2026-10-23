@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { collectPagedRows, ilikePattern, pageBounds } from "./admin-page";
+import { collectPagedRows, csvCell, exportWindowEnd, ilikePattern, pageBounds } from "./admin-page";
 import { asRoles, isBanned } from "./admin-directory.server";
 
 describe("admin page bounds", () => {
@@ -42,9 +42,21 @@ describe("paged export", () => {
     ]) {
       const src = readFileSync(resolve(file), "utf8");
       expect(src, file).toContain("collectPagedRows");
+      expect(src, file).toContain('.order("id", { ascending: false })');
+      expect(src, file).toContain("csvCell");
       expect(src, file).not.toContain(".limit(10000)");
       expect(src, file).not.toContain(".limit(1000)");
     }
+    const audit = readFileSync(resolve("src/lib/super-admin.functions.ts"), "utf8");
+    expect(audit).toContain("exportWindowEnd");
+    const ai = readFileSync(resolve("src/lib/admin-ai-audit.functions.ts"), "utf8");
+    expect(ai).toContain('.lte("created_at", startedAt)');
+    const enrich = ai.slice(
+      ai.indexOf("async function enrichEmails"),
+      ai.indexOf("export const listAiRecsAudit"),
+    );
+    expect(enrich).toContain("loadUserEmails");
+    expect(enrich).not.toContain("getUserById");
   });
 
   it("refuses to silently stop at the old 1000-row cap", async () => {
@@ -55,13 +67,37 @@ describe("paged export", () => {
 });
 
 describe("ilike pattern", () => {
-  it("drops filter metacharacters", () => {
-    expect(ilikePattern("a%b_c,d(e)")).toBe("%a b c d e%");
+  it("keeps a plain search as a contains pattern", () => {
+    expect(ilikePattern("hello")).toBe("%hello%");
+  });
+
+  it("escapes like wildcards and quotes PostgREST specials", () => {
+    expect(ilikePattern("a%b_c,d(e)")).toBe('"%a\\\\%b\\\\_c,d(e)%"');
+    expect(ilikePattern("a.b:c d")).toBe('"%a.b:c d%"');
   });
 
   it("returns null for a blank search", () => {
     expect(ilikePattern("  ")).toBeNull();
-    expect(ilikePattern("%,()")).toBeNull();
+  });
+});
+
+describe("csv cells", () => {
+  it("prefixes cells that a spreadsheet would treat as a formula", () => {
+    expect(csvCell("=1+1")).toBe("'=1+1");
+    expect(csvCell("+1")).toBe("'+1");
+    expect(csvCell("-1")).toBe("'-1");
+    expect(csvCell("@sum")).toBe("'@sum");
+    expect(csvCell("safe")).toBe("safe");
+    expect(csvCell("=1,2")).toBe(`"'=1,2"`);
+  });
+});
+
+describe("export window", () => {
+  it("freezes the export at the earlier of the filter and the start time", () => {
+    const started = "2026-01-01T00:00:00.000Z";
+    expect(exportWindowEnd("2020-01-01T00:00:00.000Z", started)).toBe("2020-01-01T00:00:00.000Z");
+    expect(exportWindowEnd("2099-01-01T00:00:00.000Z", started)).toBe(started);
+    expect(exportWindowEnd(null, started)).toBe(started);
   });
 });
 
@@ -98,6 +134,27 @@ describe("admin directory migration", () => {
       "GRANT EXECUTE ON FUNCTION public.admin_directory_page(text, text, text, integer, integer, text) TO authenticated",
     );
   });
+
+  it("loads many auth emails in one function", () => {
+    const emails = readFileSync(
+      resolve("supabase/migrations/20261023220000_admin_user_emails.sql"),
+      "utf8",
+    );
+    expect(emails).toContain("FROM auth.users u");
+    expect(emails).toContain("WHERE u.id = ANY");
+    expect(emails).toContain(
+      "GRANT EXECUTE ON FUNCTION public.admin_user_emails(uuid[]) TO service_role",
+    );
+    expect(emails).toContain(
+      "REVOKE ALL ON FUNCTION public.admin_user_emails(uuid[]) FROM PUBLIC, anon, authenticated",
+    );
+    const loader = readFileSync(resolve("src/lib/admin-directory.server.ts"), "utf8");
+    expect(loader).toContain('admin.rpc("admin_user_emails"');
+    const subscribers = readFileSync(resolve("src/lib/admin-reports.functions.ts"), "utf8");
+    const list = subscribers.slice(subscribers.indexOf("export const listSubscribers"));
+    expect(list).toContain("loadUserEmails");
+    expect(list).not.toContain("getUserById");
+  });
 });
 
 describe("paged admin lists", () => {
@@ -110,6 +167,8 @@ describe("paged admin lists", () => {
     expect(leads).toContain(".range(");
     expect(leads).not.toContain(".limit(1000)");
     expect(leads).toContain("context.supabase");
+    expect(leads).toContain("requireLeadAccess");
+    expect(leads).toContain("export const guardLeadAccess");
     expect(leads).not.toContain("requireAdmin");
   });
 
@@ -126,9 +185,9 @@ describe("paged admin lists", () => {
       users.indexOf("export const listAllUsers"),
       users.indexOf("async function recordAudit"),
     );
+    expect(handler).toContain("await requireAdmin(context.userId)");
     expect(handler).toContain("assertSuperAdmin");
     expect(handler).toContain("queryAdminDirectory");
-    expect(handler).not.toContain("requireAdmin");
     expect(handler).not.toContain("isPlatformAdmin");
   });
 });

@@ -196,6 +196,45 @@ async function hydrateAuthUsers(admin: AdminClient, users: AuthUser[]) {
   });
 }
 
+/**
+ * One lookup for many auth emails. Uses admin_user_emails when that function
+ * is deployed. Otherwise walks listUsers pages until every requested id is
+ * found, instead of calling getUserById once per row.
+ */
+export async function loadUserEmails(
+  admin: AdminClient,
+  ids: Array<string | null | undefined>,
+): Promise<Map<string, string | null>> {
+  const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  const map = new Map<string, string | null>();
+  if (unique.length === 0) return map;
+
+  const { data, error } = await admin.rpc("admin_user_emails", { _ids: unique });
+  if (!error) {
+    for (const row of (data ?? []) as Array<{ id: string; email: string | null }>) {
+      map.set(row.id, row.email ?? null);
+    }
+    return map;
+  }
+  console.error("admin_user_emails", error.code ?? "unknown");
+  if (!MISSING_RPC.has(error.code ?? "")) throw new Error("Could not load user emails");
+
+  const wanted = new Set(unique);
+  for (let page = 1; page <= 25 && map.size < wanted.size; page++) {
+    const { data: listed, error: listError } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+    if (listError) throw new Error("Could not load user emails");
+    const users = listed?.users ?? [];
+    for (const user of users) {
+      if (wanted.has(user.id)) map.set(user.id, user.email ?? null);
+    }
+    if (users.length < 200) break;
+  }
+  return map;
+}
+
 export function directoryUser(row: DirectoryRow) {
   return {
     id: row.id,

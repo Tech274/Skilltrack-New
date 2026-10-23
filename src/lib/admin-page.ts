@@ -41,16 +41,29 @@ export function pageBounds(page?: number | null, pageSize?: number | null) {
 }
 
 /**
- * Strip characters that break a PostgREST `or()` filter or act as LIKE wildcards,
- * then wrap the remainder for `ilike`.
+ * Escape a search string for `ilike` and for a PostgREST `.or()` / `.ilike()` value.
+ * `%`, `_`, and `\` stay in the search as literals. Commas, dots, colons, parentheses,
+ * quotes, and spaces are quoted so they do not change the filter grammar.
  */
 export function ilikePattern(raw: string | undefined | null): string | null {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return null;
-  const safe = trimmed
-    .replace(/[%_,()]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!safe) return null;
-  return `%${safe}%`;
+  const literal = trimmed.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  const wrapped = `%${literal}%`;
+  if (!/[,.():\\"\s]/.test(wrapped)) return wrapped;
+  return `"${wrapped.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/** Earlier of the caller's end filter and the moment the export started. */
+export function exportWindowEnd(requestedTo: string | null | undefined, startedAt: string): string {
+  if (requestedTo && requestedTo < startedAt) return requestedTo;
+  return startedAt;
+}
+
+/** CSV cell. A leading = + - or @ is prefixed so a spreadsheet does not treat it as a formula. */
+export function csvCell(value: unknown): string {
+  let text = value == null ? "" : typeof value === "string" ? value : JSON.stringify(value);
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
 }

@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { directoryLearner, queryAdminDirectory } from "@/lib/admin-directory.server";
-import { ilikePattern, pageBounds } from "@/lib/admin-page";
+import { pageBounds } from "@/lib/admin-page";
 
 const WRITE_ROLES = ["admin", "support_admin"] as const;
 const READ_ROLES = ["admin", "support_admin", "finance_admin"] as const;
@@ -102,7 +102,7 @@ async function fallbackLearners(supabaseAdmin: any, data: { search?: string; sta
     };
   });
 
-  const pattern = ilikePattern(data?.search)?.slice(1, -1).toLowerCase();
+  const pattern = data?.search?.trim().toLowerCase();
   if (pattern) {
     rows = rows.filter((r: any) =>
       (r.display_name ?? "").toLowerCase().includes(pattern) ||

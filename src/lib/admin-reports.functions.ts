@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { ilikePattern } from "@/lib/admin-page";
+import { loadUserEmails } from "@/lib/admin-directory.server";
 
 const rangeInput = z.object({
   from: z.string().datetime().optional(),
@@ -216,11 +217,7 @@ export const listSubscribers = createServerFn({ method: "POST" })
     // Hydrate user emails + org names
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id).filter(Boolean))) as string[];
     const orgIds = Array.from(new Set((rows ?? []).map((r) => r.org_id).filter(Boolean))) as string[];
-    const emailMap = new Map<string, string | null>();
-    for (const id of userIds) {
-      const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
-      emailMap.set(id, u?.user?.email ?? null);
-    }
+    const emailMap = await loadUserEmails(supabaseAdmin, userIds);
     const orgMap = new Map<string, string>();
     if (orgIds.length > 0) {
       const { data: orgs } = await supabaseAdmin.from("organizations").select("id, name").in("id", orgIds);

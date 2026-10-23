@@ -8,6 +8,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern } from "@/lib/admin-page";
 
 const ASSET_TYPES = ["certification", "resource", "mock_exam"] as const;
 type AssetType = typeof ASSET_TYPES[number];
@@ -46,9 +47,11 @@ export const listAccessRules = createServerFn({ method: "GET" })
     let q = supabaseAdmin.from("access_rules").select("*").order("created_at", { ascending: false });
     if (data?.asset_type && data.asset_type !== "all") q = q.eq("asset_type", data.asset_type);
     if (data?.only_active) q = q.eq("active", true);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`certification_slug.ilike.${s},required_plan.ilike.${s},required_role.ilike.${s}`);
+    const search = ilikePattern(data?.search);
+    if (search) {
+      q = q.or(
+        `certification_slug.ilike.${search},required_plan.ilike.${search},required_role.ilike.${search}`,
+      );
     }
     const { data: rows, error } = await q.limit(500);
     if (error) throw new Error(error.message);

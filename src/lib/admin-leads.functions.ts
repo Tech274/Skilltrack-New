@@ -24,6 +24,13 @@ export type SavedLead = {
  * `supabase/migrations/20261023180000_leads_admin_rls.sql` and do nothing
  * until that file is applied to the live database.
  */
+export const guardLeadAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireLeadAccess(context.userId);
+    return { ok: true as const };
+  });
+
 export const listSavedLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

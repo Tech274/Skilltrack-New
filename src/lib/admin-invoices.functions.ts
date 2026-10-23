@@ -778,13 +778,16 @@ export const searchLearners = createServerFn({ method: "GET" })
     const pattern = ilikePattern(data?.q);
     if (pattern) q = q.ilike("display_name", pattern);
     const { data: profs } = await q;
-    // attach emails via auth admin
-    const out: Array<{ id: string; display_name: string | null; email: string | null }> = [];
-    for (const p of profs ?? []) {
-      const { data: u } = await supabaseAdmin.auth.admin.getUserById(p.id);
-      out.push({ id: p.id, display_name: p.display_name, email: u?.user?.email ?? null });
-    }
-    return out;
+    const { loadUserEmails } = await import("@/lib/admin-directory.server");
+    const emails = await loadUserEmails(
+      supabaseAdmin,
+      (profs ?? []).map((profile) => profile.id),
+    );
+    return (profs ?? []).map((profile) => ({
+      id: profile.id,
+      display_name: profile.display_name,
+      email: emails.get(profile.id) ?? null,
+    }));
   });
 
 /* -------------------------------------------------------------------------- */

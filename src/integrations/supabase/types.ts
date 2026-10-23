@@ -2778,6 +2778,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      admin_user_emails: {
+        Args: { _ids: string[] }
+        Returns: { id: string; email: string }[]
+      }
       join_demo_organization: {
         Args: never
         Returns: {
