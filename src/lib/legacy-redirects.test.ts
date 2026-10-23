@@ -1,14 +1,16 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { themeInitScript } from "@/components/theme-toggle";
 import { PERMISSION_PDF_PRINT_SCRIPT } from "./permission-export";
 import { LEGACY_REDIRECTS, legacyLocationHref, legacyRedirectUrl } from "./legacy-redirects";
-import { CONTENT_SECURITY_POLICY, withSecurityHeaders, X_FRAME_OPTIONS } from "./security-headers";
-
-function sha256(source: string): string {
-  return `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
-}
+import {
+  applyScriptNonces,
+  CONTENT_SECURITY_POLICY,
+  contentSecurityPolicyForHtml,
+  scriptSourceHash,
+  withSecurityHeaders,
+  X_FRAME_OPTIONS,
+} from "./security-headers";
 
 describe("legacy redirects", () => {
   it("sends login, signup, and privacy-policy to their replacements", () => {
@@ -55,8 +57,8 @@ describe("legacy redirects", () => {
 });
 
 describe("security headers", () => {
-  it("sets DENY and the content security policy without dropping other headers", () => {
-    const response = withSecurityHeaders(
+  it("sets DENY and the content security policy without dropping other headers", async () => {
+    const response = await withSecurityHeaders(
       new Response("ok", { status: 201, headers: { "content-type": "text/html", "x-test": "1" } }),
     );
     expect(response.status).toBe(201);
@@ -98,7 +100,15 @@ describe("security headers", () => {
     expect(CONTENT_SECURITY_POLICY).not.toContain("script-src 'self' 'unsafe-inline'");
     expect(CONTENT_SECURITY_POLICY).not.toMatch(/script-src[^;]*'unsafe-inline'/);
     expect(CONTENT_SECURITY_POLICY).toContain("style-src 'self' 'unsafe-inline'");
-    expect(CONTENT_SECURITY_POLICY).toContain(sha256(themeInitScript));
-    expect(CONTENT_SECURITY_POLICY).toContain(sha256(PERMISSION_PDF_PRINT_SCRIPT));
+    expect(CONTENT_SECURITY_POLICY).toContain(scriptSourceHash(themeInitScript));
+    expect(CONTENT_SECURITY_POLICY).toContain(scriptSourceHash(PERMISSION_PDF_PRINT_SCRIPT));
+    const html = `<script>${themeInitScript}</script><script type="application/ld+json">{}</script>`;
+    const applied = applyScriptNonces(html, "abc123");
+    expect(applied.used).toBe(true);
+    expect(applied.html).toContain('<script nonce="abc123">');
+    expect(applied.html).toContain('<script type="application/ld+json">');
+    const dynamic = contentSecurityPolicyForHtml(applied.html, "abc123");
+    expect(dynamic).toContain("'nonce-abc123'");
+    expect(dynamic).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 });

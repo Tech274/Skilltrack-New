@@ -1,3 +1,5 @@
+import { createHash, randomBytes } from "node:crypto";
+
 export const X_FRAME_OPTIONS = "DENY";
 
 /**
@@ -20,6 +22,8 @@ export const X_FRAME_OPTIONS = "DENY";
  * script-src allows the theme bootstrap and the permission-matrix print
  * snippet by sha256. It does not allow 'unsafe-inline'. style-src still
  * allows inline styles used by the chart theme.
+ * TanStack's bootstrap changes on every response and does not survive HTML
+ * parsing unchanged, so each HTML document gets a nonce on its inline scripts.
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -38,11 +42,55 @@ export const CONTENT_SECURITY_POLICY = [
   "manifest-src 'self'",
 ].join("; ");
 
-export function withSecurityHeaders(response: Response): Response {
+export function scriptSourceHash(source: string): string {
+  return `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
+}
+
+const SCRIPT_OPEN = /<script(?![^>]*\bsrc\s*=)\b([^>]*)>/gi;
+
+export function applyScriptNonces(html: string, nonce: string): { html: string; used: boolean } {
+  let used = false;
+  const next = html.replace(SCRIPT_OPEN, (tag, attrs: string) => {
+    const type = /type\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]?.toLowerCase();
+    if (
+      type &&
+      type !== "module" &&
+      type !== "text/javascript" &&
+      type !== "application/javascript"
+    ) {
+      return tag;
+    }
+    if (/\bnonce\s*=/i.test(attrs)) return tag;
+    used = true;
+    return `<script nonce="${nonce}"${attrs}>`;
+  });
+  return { html: next, used };
+}
+
+export function contentSecurityPolicyForHtml(html: string, nonce?: string): string {
+  if (!nonce) return CONTENT_SECURITY_POLICY;
+  return CONTENT_SECURITY_POLICY.replace("script-src 'self'", `script-src 'self' 'nonce-${nonce}'`);
+}
+
+export async function withSecurityHeaders(response: Response): Promise<Response> {
   const headers = new Headers(response.headers);
   headers.set("X-Frame-Options", X_FRAME_OPTIONS);
-  headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
-  return new Response(response.body, {
+  const type = headers.get("content-type") ?? "";
+  let body: BodyInit | null = response.body;
+  if (type.includes("text/html")) {
+    const html = await response.text();
+    const nonce = randomBytes(16).toString("base64");
+    const applied = applyScriptNonces(html, nonce);
+    body = applied.html;
+    headers.set(
+      "Content-Security-Policy",
+      applied.used ? contentSecurityPolicyForHtml(applied.html, nonce) : CONTENT_SECURITY_POLICY,
+    );
+    headers.delete("content-length");
+  } else {
+    headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  }
+  return new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers,
