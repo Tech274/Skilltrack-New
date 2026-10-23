@@ -52,6 +52,13 @@ export type MarketplaceSkuRow = {
   fulfilled_on_href: string | null;
 };
 
+/** Keep a stored amount, including the 999 placeholder. NULL is missing, not 0. */
+function priceAmountFromRow(value: number | string | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const price = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(price) ? price : undefined;
+}
+
 function logoFileFromPath(logoPath: string): string {
   const p = (logoPath || "").trim();
   if (!p) return "";
@@ -103,14 +110,13 @@ export function catalogFromDbRows(
     if (!row.active) continue;
     const cert = certById.get(row.cert_id);
     if (!cert || !isPrepSkuType(row.sku_type)) continue;
-    const price = typeof row.price_inr === "number" ? row.price_inr : Number(row.price_inr);
     const sku: PrepSkuDef = {
       type: row.sku_type,
       title: row.title,
       blurb: row.blurb || "",
       includes: row.includes ?? [],
       features: row.features ?? [],
-      priceInr: Number.isFinite(price) ? price : undefined,
+      priceInr: priceAmountFromRow(row.price_inr),
       currency: row.currency || "INR",
     };
     if (row.fulfilled_on_label && row.fulfilled_on_href) {

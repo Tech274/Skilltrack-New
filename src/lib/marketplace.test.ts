@@ -256,6 +256,58 @@ describe("marketplace catalog from DB rows", () => {
     expect(mapped?.oemByCertKey["aws-saa"]).toBe("aws");
   });
 
+  it("maps a null price_inr to a missing price, not zero", async () => {
+    const { catalogFromDbRows } = await import("./marketplace-catalog");
+    const mapped = catalogFromDbRows(
+      [
+        {
+          id: "o1",
+          key: "aws",
+          name: "Amazon Web Services",
+          short_name: "AWS",
+          logo_path: "/logos/oem/aws.svg",
+          sort_order: 1,
+          active: true,
+        },
+      ],
+      [
+        {
+          id: "c1",
+          oem_id: "o1",
+          key: "aws-saa",
+          catalog_slug: "aws-solutions-architect-associate",
+          catalog_id: null,
+          code: "SAA-C03",
+          name: "AWS Solutions Architect — Associate",
+          short_name: "AWS SAA",
+          sort_order: 1,
+          active: true,
+        },
+      ],
+      [
+        {
+          id: "s-null",
+          cert_id: "c1",
+          sku_type: "notes",
+          title: "Notes",
+          blurb: "",
+          includes: [],
+          features: [],
+          price_inr: null,
+          active: true,
+          mock_exam_id: null,
+          study_resource_id: null,
+          question_bank_id: null,
+          fulfilled_on_label: null,
+          fulfilled_on_href: null,
+        },
+      ],
+    );
+    expect(mapped?.skusByCert["aws-saa"]?.[0]?.priceInr).toBeUndefined();
+    expect(listedSkuPrice({ priceInr: null, currency: "INR" })).toBeNull();
+    expect(formatListedPrice(listedSkuPrice({ priceInr: null }))).toBe("Price on request");
+  });
+
   it("returns null when no active OEMs so callers fall back to static", async () => {
     const { catalogFromDbRows } = await import("./marketplace-catalog");
     expect(catalogFromDbRows([], [], [])).toBeNull();
@@ -326,6 +378,7 @@ describe("marketplace prices and bundles", () => {
 
   it("treats the 999 seed default as missing, including inside bundle totals", () => {
     expect(listedSkuPrice({ priceInr: 999, currency: "INR" })).toBeNull();
+    expect(listedSkuPrice({ priceInr: null, currency: "INR" })).toBeNull();
     expect(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR })).toBeNull();
     expect(
       formatListedPrice(listedSkuPrice({ priceInr: MARKETPLACE_PRICE_INR, currency: "INR" })),

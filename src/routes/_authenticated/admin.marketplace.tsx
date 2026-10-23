@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { formatInvoiceAmount, INVOICE_CURRENCIES } from "@/lib/invoice-currency";
+import { INVOICE_CURRENCIES } from "@/lib/invoice-currency";
 import { Eye, EyeOff, Pencil, Plus, Sprout } from "lucide-react";
 import {
   listMarketplaceCatalogAdmin,
@@ -15,7 +15,12 @@ import {
   upsertMarketplaceOem,
   upsertMarketplaceSku,
 } from "@/lib/admin-marketplace.functions";
-import { PREP_SKU_TYPE_HUBS, PREP_SKU_TYPE_KEYS } from "@/lib/marketplace";
+import {
+  formatListedPrice,
+  listedSkuPrice,
+  PREP_SKU_TYPE_HUBS,
+  PREP_SKU_TYPE_KEYS,
+} from "@/lib/marketplace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -651,7 +656,11 @@ function SkusTable({ skus, certs }: { skus: any[]; certs: any[] }) {
                     <div className="font-medium">{r.title}</div>
                     <div className="line-clamp-1 text-xs text-muted-foreground">{r.blurb}</div>
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-xs">{formatInvoiceAmount(r.price_inr, r.currency, 0)}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs">
+                    {formatListedPrice(
+                      listedSkuPrice({ priceInr: r.price_inr, currency: r.currency }),
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <ActivePill active={r.active} />
                   </td>
@@ -714,7 +723,7 @@ function SkuDialog({
         sku_type: "mock",
         title: "",
         blurb: "",
-        price_inr: 999,
+        price_inr: "",
         currency: "INR",
         active: true,
         mock_exam_id: "",
@@ -796,8 +805,8 @@ function SkuDialog({
             </div>
             <Field
               label="Price"
-              value={String(ready.price_inr ?? 999)}
-              onChange={(v) => setForm((s: any) => ({ ...s, price_inr: Number(v) || 0 }))}
+              value={skuPriceFieldValue(ready.price_inr)}
+              onChange={(v) => setForm((s: any) => ({ ...s, price_inr: v }))}
             />
           </div>
           <Field
@@ -825,7 +834,7 @@ function SkuDialog({
                 sku_type: ready.sku_type,
                 title: ready.title,
                 blurb: ready.blurb || "",
-                price_inr: Number(ready.price_inr) || 0,
+                price_inr: skuPricePayload(ready.price_inr),
                 currency: ready.currency || "INR",
                 active: ready.active !== false,
                 mock_exam_id: ready.mock_exam_id || null,
@@ -845,6 +854,19 @@ function SkuDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function skuPriceFieldValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+  return String(value);
+}
+
+/** Empty stays null. A typed 0 stays 0; this does not fall back to 999. */
+function skuPricePayload(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (raw === "") return null;
+  return Number(raw);
 }
 
 function Field({

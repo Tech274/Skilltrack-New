@@ -391,8 +391,9 @@ const CERT_PREP_SKUS: Record<MarketplaceCertKey, PrepSkuDef[]> = {
 export const PREP_SKU_TYPES: PrepSkuDef[] = CERT_PREP_SKUS["aws-saa"];
 
 /**
- * Admin seed / form default and the `marketplace_skus.price_inr` column default.
+ * Historical marketplace price placeholder (the old `price_inr` default of 999).
  * Not a quoted prep price. Public catalogue pages treat this amount as missing.
+ * The column is nullable with no default; rows that still store 999 are left as-is.
  */
 export const MARKETPLACE_PRICE_INR = 999;
 
@@ -405,9 +406,12 @@ export type ListedPrice = {
 
 /**
  * A quoted prep price stored on the SKU.
- * Missing, non-finite, and placeholder amounts (the column default / MARKETPLACE_PRICE_INR) are not listed.
+ * Missing, null, non-finite, and placeholder amounts (MARKETPLACE_PRICE_INR) are not listed.
  */
-export function listedSkuPrice(sku: Pick<PrepSkuDef, "priceInr" | "currency">): ListedPrice | null {
+export function listedSkuPrice(sku: {
+  priceInr?: number | null;
+  currency?: string | null;
+}): ListedPrice | null {
   if (typeof sku.priceInr !== "number" || !Number.isFinite(sku.priceInr)) return null;
   if (sku.priceInr === MARKETPLACE_PRICE_INR) return null;
   const currency = (sku.currency || "INR").trim().toUpperCase() || "INR";

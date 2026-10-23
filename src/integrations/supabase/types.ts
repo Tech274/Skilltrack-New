@@ -1437,7 +1437,7 @@ export type Database = {
           id: string
           includes: string[]
           mock_exam_id: string | null
-          price_inr: number
+          price_inr: number | null
           question_bank_id: string | null
           sku_type: string
           study_resource_id: string | null
@@ -1456,7 +1456,7 @@ export type Database = {
           id?: string
           includes?: string[]
           mock_exam_id?: string | null
-          price_inr?: number
+          price_inr?: number | null
           question_bank_id?: string | null
           sku_type: string
           study_resource_id?: string | null
@@ -1475,7 +1475,7 @@ export type Database = {
           id?: string
           includes?: string[]
           mock_exam_id?: string | null
-          price_inr?: number
+          price_inr?: number | null
           question_bank_id?: string | null
           sku_type?: string
           study_resource_id?: string | null
