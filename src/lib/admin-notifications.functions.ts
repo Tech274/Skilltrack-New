@@ -145,7 +145,7 @@ export const runReminderScan = createServerFn({ method: "POST" })
       const body = `Your ${s.plan_key ?? "subscription"} ends on ${s.end_date}. Renew to keep access.`;
       await notify([
         { recipientId: s.learner_id, audience: "learner", category: "subscription_expiring", title, body, link: "/pricing", metadata: { subscription_id: s.id } },
-        ...adminIds.map((id) => ({ recipientId: id, audience: "admin" as const, category: "subscription_expiring", title: `Subscription expiring (${s.plan_key ?? "plan"})`, body, link: `/admin/subscribers`, metadata: { subscription_id: s.id, learner_id: s.learner_id } })),
+        ...adminIds.map((id) => ({ recipientId: id, audience: "admin" as const, category: "subscription_expiring", title: `Subscription expiring (${s.plan_key ?? "plan"})`, body, link: `/admin`, metadata: { subscription_id: s.id, learner_id: s.learner_id } })),
       ]);
       queued += 1 + adminIds.length;
     }

@@ -66,7 +66,6 @@ export function SiteHeader() {
   const showSecurity = isSuperAdmin && features.has("security_dashboard");
   const showAudit = isSuperAdmin && features.has("audit_log");
   const showPerms = isSuperAdmin && features.has("permissions_matrix");
-  const showSubMgmt = isSuperAdmin && features.has("subscription_management");
 
 
   async function handleSignOut() {
@@ -140,13 +139,10 @@ export function SiteHeader() {
                     {showPerms && (
                       <Link to="/admin/permissions" className="block rounded px-3 py-2 text-sm hover:bg-surface-elevated">Permissions Matrix</Link>
                     )}
-                    {showSubMgmt && (
-                      <Link to="/admin/subscription" className="block rounded px-3 py-2 text-sm hover:bg-surface-elevated">Subscription</Link>
-                    )}
                     {showSecurity && (
                       <Link to="/security" className="block rounded px-3 py-2 text-sm hover:bg-surface-elevated">Security Findings</Link>
                     )}
-                    {!showUserMgmt && !showAudit && !showPerms && !showSubMgmt && !showSecurity && (
+                    {!showUserMgmt && !showAudit && !showPerms && !showSecurity && (
                       <div className="px-3 py-2 text-xs text-muted-foreground">No admin features enabled by your plan.</div>
                     )}
                   </div>

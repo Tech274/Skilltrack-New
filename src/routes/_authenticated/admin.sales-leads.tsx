@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -11,14 +11,23 @@ import {
   type SalesLead,
 } from "@/lib/sales-leads.functions";
 import { buildHandoffUrl, SKILLHUB_BASE_URL } from "@/lib/handoff";
+import { SavedLeadsPanel } from "@/components/admin/saved-leads-panel";
+import { guardLeadAccess } from "@/lib/admin-leads.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/sales-leads")({
+  beforeLoad: async () => {
+    try {
+      await guardLeadAccess();
+    } catch {
+      throw redirect({ to: "/admin" });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Sales leads — SkillTrack-365 Admin" },
-      { name: "description", content: "Track and update every Book a free call enquiry." },
-      { property: "og:title", content: "Sales leads — SkillTrack-365 Admin" },
-      { property: "og:description", content: "Track and update every Book a free call enquiry." },
+      { title: "Leads — SkillTrack-365 Admin" },
+      { name: "description", content: "Sales pipeline and saved form enquiries." },
+      { property: "og:title", content: "Leads — SkillTrack-365 Admin" },
+      { property: "og:description", content: "Sales pipeline and saved form enquiries." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -82,7 +91,15 @@ function SalesLeadsPage() {
     onError: (e: any) => toast.error(e?.message ?? "Update failed"),
   });
 
-  const rows: SalesLead[] = query.data?.rows ?? [];
+  const denied =
+    query.isError &&
+    String((query.error as Error).message)
+      .toLowerCase()
+      .includes("lead access");
+  const rows = useMemo<SalesLead[]>(
+    () => (denied ? [] : (query.data?.rows ?? [])),
+    [denied, query.data],
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -103,10 +120,10 @@ function SalesLeadsPage() {
     <div className="mx-auto max-w-7xl px-6 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sales leads</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every "Book a free call" enquiry, read live from the Sales queue sheet. Status changes
-            are written straight back to it.
+            Book-a-call pipeline from the Sales queue sheet. Status changes are written straight
+            back to it. Saved form enquiries from every source are listed below.
           </p>
         </div>
         <button
@@ -123,7 +140,13 @@ function SalesLeadsPage() {
         </div>
       )}
 
-      {query.isError && (
+      {denied && (
+        <p className="mt-8 rounded-lg border border-border bg-surface px-4 py-6 text-sm text-muted-foreground">
+          Lead names, emails, and phone numbers are limited to sales-leads roles.
+        </p>
+      )}
+
+      {query.isError && !denied && (
         <div className="mt-8 rounded-xl border border-warning/40 bg-surface p-5">
           <div className="flex items-center gap-2 text-sm font-medium text-warning">
             <AlertTriangle size={15} /> Can't read the Sales queue yet
@@ -277,6 +300,7 @@ function SalesLeadsPage() {
           </div>
         </>
       )}
+      {!denied && <SavedLeadsPanel />}
     </div>
   );
 }

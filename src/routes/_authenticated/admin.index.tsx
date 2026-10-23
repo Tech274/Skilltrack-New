@@ -138,7 +138,7 @@ function AdminDashboard() {
           )}
         </Panel>
 
-        <Panel title="Upcoming Renewals" cta={<Link to="/admin/subscribers" className="text-xs text-primary hover:underline">Manage →</Link>}>
+        <Panel title="Upcoming Renewals">
           {data.upcomingRenewals.length === 0 ? <Empty msg="No renewals in the next 30 days" /> : (
             <ul className="divide-y divide-border/60">
               {data.upcomingRenewals.map((s: any) => (
