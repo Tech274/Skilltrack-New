@@ -1,7 +1,14 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { themeInitScript } from "@/components/theme-toggle";
+import { PERMISSION_PDF_PRINT_SCRIPT } from "./permission-export";
 import { LEGACY_REDIRECTS, legacyLocationHref, legacyRedirectUrl } from "./legacy-redirects";
 import { CONTENT_SECURITY_POLICY, withSecurityHeaders, X_FRAME_OPTIONS } from "./security-headers";
+
+function sha256(source: string): string {
+  return `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
+}
 
 describe("legacy redirects", () => {
   it("sends login, signup, and privacy-policy to their replacements", () => {
@@ -85,5 +92,13 @@ describe("security headers", () => {
     const text = readFileSync("public/_headers", "utf8");
     expect(text).toContain(`X-Frame-Options: ${X_FRAME_OPTIONS}`);
     expect(text).toContain(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`);
+  });
+
+  it("drops script-src unsafe-inline and hashes the stable inline scripts", () => {
+    expect(CONTENT_SECURITY_POLICY).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(CONTENT_SECURITY_POLICY).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(CONTENT_SECURITY_POLICY).toContain("style-src 'self' 'unsafe-inline'");
+    expect(CONTENT_SECURITY_POLICY).toContain(sha256(themeInitScript));
+    expect(CONTENT_SECURITY_POLICY).toContain(sha256(PERMISSION_PDF_PRINT_SCRIPT));
   });
 });

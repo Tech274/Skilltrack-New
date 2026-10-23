@@ -17,6 +17,9 @@ export const X_FRAME_OPTIONS = "DENY";
  * oauth.lovable.app and lovable.dev), server-only calls to
  * ai.gateway.lovable.dev, connector-gateway.lovable.dev, and open.er-api.com.
  * This repo pushes `window.dataLayer` and does not load an analytics script.
+ * script-src allows the theme bootstrap and the permission-matrix print
+ * snippet by sha256. It does not allow 'unsafe-inline'. style-src still
+ * allows inline styles used by the chart theme.
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -24,7 +27,7 @@ export const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com",
+  "script-src 'self' 'sha256-2MUoBzrHp+ozczLgTnymGxpXSXtYI578H/CPThjS2o4=' 'sha256-yP8nlIf19QQlhoctCL0QE23v0Z35QserAqrMJUrv3t0=' https://js.stripe.com https://*.js.stripe.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data: https://rsms.me",
   "img-src 'self' data: blob: https:",
