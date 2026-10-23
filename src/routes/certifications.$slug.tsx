@@ -15,6 +15,7 @@ import { getCert, certifications } from "@/lib/certifications";
 import { getMarketplaceCertByCatalogSlug } from "@/lib/marketplace";
 import { brandForVendor } from "@/lib/vendor-brands";
 import { VendorLogo } from "@/components/cert-marketplace-card";
+import { ExamDateLeadForm } from "@/components/exam-date-lead-form";
 import { RegionSelect } from "@/components/region-select";
 import {
   EXAM_COST_TIP,
@@ -251,6 +252,10 @@ function CertPage() {
               <Metric label="ROI score" value={`${cert.roiScore} / 100`} accent />
             </div>
           </div>
+        </div>
+
+        <div className="mx-auto mt-16 max-w-3xl">
+          <ExamDateLeadForm certification={{ slug: cert.slug, name: cert.name }} />
         </div>
 
         {/* Related */}

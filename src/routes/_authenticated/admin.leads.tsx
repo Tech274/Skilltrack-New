@@ -24,6 +24,7 @@ const SOURCE_LABEL: Record<string, string> = {
   results_gate: "Results gate",
   org_seats: "Org seats",
   other: "Other",
+  exam_date: "Exam date",
 };
 
 function LeadsPage() {
@@ -40,7 +41,10 @@ function LeadsPage() {
     return (data?.rows ?? []).filter(
       (r) =>
         (source === "all" || r.source === source) &&
-        (!s || [r.name, r.email, r.phone].some((v) => v.toLowerCase().includes(s))),
+        (!s ||
+          [r.name, r.email, r.phone, r.certs, r.target_exam_date].some((v) =>
+            (v ?? "").toLowerCase().includes(s),
+          )),
     );
   }, [data, q, source]);
 
@@ -78,7 +82,9 @@ function LeadsPage() {
         >
           <option value="all">All sources</option>
           {Object.entries(SOURCE_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+            <option key={k} value={k}>
+              {v}
+            </option>
           ))}
         </select>
       </div>
@@ -88,7 +94,10 @@ function LeadsPage() {
           <Loader2 size={14} className="animate-spin" /> Loading leads…
         </div>
       ) : error ? (
-        <div role="alert" className="mt-6 rounded-md border border-destructive/40 p-4 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-6 rounded-md border border-destructive/40 p-4 text-sm text-destructive"
+        >
           {(error as Error).message}
         </div>
       ) : rows.length === 0 ? (
@@ -103,6 +112,8 @@ function LeadsPage() {
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Phone</th>
+                <th className="px-3 py-2">Certification</th>
+                <th className="px-3 py-2">Exam date</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Sheet</th>
               </tr>
@@ -115,14 +126,26 @@ function LeadsPage() {
                   </td>
                   <td className="px-3 py-2">{SOURCE_LABEL[r.source] ?? r.source}</td>
                   <td className="px-3 py-2 font-medium">{r.name}</td>
-                  <td className="px-3 py-2"><a href={`mailto:${r.email}`} className="text-primary hover:underline">{r.email}</a></td>
-                  <td className="px-3 py-2"><a href={`tel:${r.phone}`} className="hover:underline">{r.phone}</a></td>
+                  <td className="px-3 py-2">
+                    <a href={`mailto:${r.email}`} className="text-primary hover:underline">
+                      {r.email}
+                    </a>
+                  </td>
+                  <td className="px-3 py-2">
+                    <a href={`tel:${r.phone}`} className="hover:underline">
+                      {r.phone}
+                    </a>
+                  </td>
+                  <td className="px-3 py-2">{r.certs || "—"}</td>
+                  <td className="whitespace-nowrap px-3 py-2">{r.target_exam_date || "—"}</td>
                   <td className="px-3 py-2">{r.status}</td>
                   <td className="px-3 py-2 text-xs">
                     {r.sheet_synced_at ? (
                       <span className="text-success">Copied</span>
                     ) : r.sheet_error ? (
-                      <span className="text-warning" title={r.sheet_error}>Failed</span>
+                      <span className="text-warning" title={r.sheet_error}>
+                        Failed
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">Pending</span>
                     )}

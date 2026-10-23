@@ -9,6 +9,7 @@ export type SavedLead = {
   email: string;
   phone: string;
   certs: string | null;
+  target_exam_date: string | null;
   status: string;
   sheet_synced_at: string | null;
   sheet_error: string | null;
@@ -20,7 +21,9 @@ export const listSavedLeads = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("leads")
-      .select("id, created_at, source, name, email, phone, certs, status, sheet_synced_at, sheet_error")
+      .select(
+        "id, created_at, source, name, email, phone, certs, target_exam_date, status, sheet_synced_at, sheet_error",
+      )
       .order("created_at", { ascending: false })
       .limit(1000);
     if (error) throw new Error(error.message);

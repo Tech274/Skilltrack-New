@@ -1088,6 +1088,7 @@ export type Database = {
           source: string
           status: string
           submission_id: string
+          target_exam_date: string | null
           timing: string | null
           utm_campaign: string | null
           utm_medium: string | null
@@ -1109,6 +1110,7 @@ export type Database = {
           source: string
           status?: string
           submission_id: string
+          target_exam_date?: string | null
           timing?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
@@ -1130,6 +1132,7 @@ export type Database = {
           source?: string
           status?: string
           submission_id?: string
+          target_exam_date?: string | null
           timing?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
