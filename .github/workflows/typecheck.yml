@@ -30,7 +30,8 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Unit tests (vitest)
-        # Runs vitest in non-watch mode. Test files use the *.test.ts(x) suffix.
+        # Non-watch run. vite.config.ts limits collection to src/**/*.test.{ts,tsx}
+        # and excludes tests/e2e/** (Playwright, not vitest).
         run: bunx vitest run
 
       - name: Build

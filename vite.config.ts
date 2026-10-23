@@ -6,6 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+import { defaultExclude } from "vitest/config";
 
 export default defineConfig({
   tanstackStart: {
@@ -15,5 +16,11 @@ export default defineConfig({
   },
   vite: {
     plugins: [mcpPlugin()],
+    test: {
+      // Unit tests only. Playwright specs under tests/e2e import @playwright/test,
+      // which is not installed in CI, so they must not be collected by vitest.
+      include: ["src/**/*.test.{ts,tsx}"],
+      exclude: [...defaultExclude, "tests/e2e/**"],
+    },
   },
 });
