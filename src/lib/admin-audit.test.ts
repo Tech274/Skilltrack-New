@@ -2,14 +2,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { recordAdminAudit, snapshotRow } from "./admin-audit.server";
 
-const migration = readFileSync("supabase/migrations/20261023180000_admin_audit_log.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261023210000_admin_audit_log.sql", "utf8");
 
 describe("admin_audit_log migration", () => {
-  it("is append-only and readable by admins and super admins", () => {
+  it("is append-only and readable by super admins only", () => {
     expect(migration).toContain("CREATE TABLE public.admin_audit_log");
     expect(migration).toContain("ENABLE ROW LEVEL SECURITY");
-    expect(migration).toContain("public.is_super_admin(auth.uid())");
-    expect(migration).toContain("public.is_admin_role(");
+    expect(migration).toContain("USING (public.is_super_admin(auth.uid()))");
+    expect(migration).not.toContain("is_admin_role(");
     expect(migration).not.toMatch(/FOR\s+UPDATE/i);
     expect(migration).not.toMatch(/FOR\s+DELETE/i);
     expect(migration).not.toMatch(/FOR\s+INSERT/i);
@@ -158,11 +158,13 @@ describe("admin mutation coverage", () => {
       }
     }
     const list = readFileSync("src/lib/admin-audit.functions.ts", "utf8");
-    expect(list).toContain("assertAdminOrSuper");
+    expect(list).toContain("isSuperAdminUser");
+    expect(list).toContain("Forbidden: super admin required");
+    expect(list).not.toContain("assertAdminOrSuper");
     expect(list).not.toContain("requireAdmin");
     const nav = readFileSync("src/routes/_authenticated/admin.tsx", "utf8");
     expect(nav).toContain(
-      'to: "/admin/audit", label: "Audit Log", icon: ScrollText, anyAdmin: true',
+      'to: "/admin/audit", label: "Audit Log", icon: ScrollText, superOnly: true',
     );
   });
 });

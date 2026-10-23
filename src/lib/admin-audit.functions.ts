@@ -23,8 +23,10 @@ export const listAdminAuditLog = createServerFn({ method: "GET" })
       .optional(),
   )
   .handler(async ({ data, context }) => {
-    const { assertAdminOrSuper } = await import("@/lib/admin-auth.server");
-    await assertAdminOrSuper(context.userId);
+    const { isSuperAdminUser } = await import("@/lib/super-admin.server");
+    if (!(await isSuperAdminUser(context.userId))) {
+      throw new Error("Forbidden: super admin required");
+    }
     const page = data?.page ?? 1;
     const pageSize = data?.pageSize ?? 50;
     const from = (page - 1) * pageSize;

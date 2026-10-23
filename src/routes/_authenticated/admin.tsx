@@ -165,7 +165,7 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
       { to: "/admin/super-ai", label: "Super Admin AI", icon: Sparkles, superOnly: true },
       { to: "/admin/org-ai-defaults", label: "Org AI Defaults", icon: Sparkles, anyAdmin: true },
       { to: "/admin/permissions", label: "Permissions Matrix", icon: Shield, superOnly: true },
-      { to: "/admin/audit", label: "Audit Log", icon: ScrollText, anyAdmin: true },
+      { to: "/admin/audit", label: "Audit Log", icon: ScrollText, superOnly: true },
       { to: "/security", label: "Security Findings", icon: ShieldCheck, superOnly: true },
     ],
   },

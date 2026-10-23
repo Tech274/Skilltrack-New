@@ -1,8 +1,8 @@
 -- SCRUM-149: append-only audit of admin content, invoice, and user mutations.
--- Does not depend on the SCRUM-151 role helper. Reads use the existing
--- is_super_admin / is_admin_role helpers so current admins and super admins
--- can select rows. There is no UPDATE or DELETE policy. A trigger rejects
--- those statements even for the service role, which bypasses RLS.
+-- Timestamp 20261023210000 is unique (the leads RLS migration uses 20261023180000).
+-- SELECT is super admins only, matching the server check in listAdminAuditLog.
+-- There is no UPDATE or DELETE policy. A trigger rejects those statements
+-- even for the service role, which bypasses RLS.
 
 CREATE TABLE public.admin_audit_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,25 +25,11 @@ REVOKE ALL ON TABLE public.admin_audit_log FROM PUBLIC, anon, authenticated, ser
 GRANT SELECT ON TABLE public.admin_audit_log TO authenticated;
 GRANT SELECT, INSERT ON TABLE public.admin_audit_log TO service_role;
 
-CREATE POLICY "admins read admin audit log"
+CREATE POLICY "super admins read admin audit log"
   ON public.admin_audit_log
   FOR SELECT
   TO authenticated
-  USING (
-    public.is_super_admin(auth.uid())
-    OR public.is_admin_role(
-      auth.uid(),
-      ARRAY[
-        'admin',
-        'content_admin',
-        'finance_admin',
-        'support_admin',
-        'certification_admin',
-        'lab_admin',
-        'operations_admin'
-      ]::public.app_role[]
-    )
-  );
+  USING (public.is_super_admin(auth.uid()));
 
 CREATE OR REPLACE FUNCTION public.admin_audit_log_append_only()
 RETURNS trigger

@@ -70,10 +70,12 @@ function AuditPage() {
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState("");
   const mutationFetcher = useServerFn(listAdminAuditLog);
+  const isSuper = Boolean(who?.isSuperAdmin);
   const mutations = useQuery({
     queryKey: ["admin", "mutation-audit", page, submitted],
     queryFn: () =>
       mutationFetcher({ data: { page, pageSize: 50, search: submitted || undefined } }),
+    enabled: isSuper,
   });
   const mutationRows = (mutations.data?.rows ?? []) as unknown as MutationRow[];
   const total = mutations.data?.total ?? 0;
@@ -97,105 +99,115 @@ function AuditPage() {
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Content, invoice, and user changes are appended with the actor, action, target, and time.
-        Role grants stay in the section below for Super Admins.
+        Only Super Admins can read this log.
       </p>
 
-      <form
-        className="mt-6 flex flex-wrap items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setPage(1);
-          setSubmitted(search.trim());
-        }}
-      >
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search action, target, or summary"
-          className="h-9 w-full max-w-sm rounded-md border border-border bg-surface px-3 text-sm"
-        />
-        <button
-          type="submit"
-          className="h-9 rounded-md border border-border bg-surface px-3 text-sm hover:bg-surface-elevated"
-        >
-          Search
-        </button>
-        <span className="text-xs text-muted-foreground">{total} entries</span>
-      </form>
-
-      {mutations.data?.unavailable && (
-        <p className="mt-3 text-sm text-muted-foreground">
-          The audit table is not available yet. Apply the admin_audit_log migration, then retry.
+      {who && !isSuper && (
+        <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-6 text-sm text-muted-foreground">
+          Only Super Admins can read this log.
         </p>
       )}
 
-      <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-elevated text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">When</th>
-              <th className="px-4 py-3 text-left font-medium">Action</th>
-              <th className="px-4 py-3 text-left font-medium">Target</th>
-              <th className="px-4 py-3 text-left font-medium">Summary</th>
-              <th className="px-4 py-3 text-left font-medium">Actor</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mutations.isLoading && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  Loading…
-                </td>
-              </tr>
-            )}
-            {!mutations.isLoading && mutationRows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  No content, invoice, or user mutations recorded yet.
-                </td>
-              </tr>
-            )}
-            {mutationRows.map((row) => (
-              <tr key={row.id} className="border-t border-border/60">
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
-                  {new Date(row.created_at).toLocaleString()}
-                </td>
-                <td className="px-4 py-3 font-medium">{row.action}</td>
-                <td className="px-4 py-3 text-xs">
-                  <div>{row.target_table}</div>
-                  <div className="text-muted-foreground">{row.target_id}</div>
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{row.summary}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {row.actor_id ?? "unknown"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {pageCount > 1 && (
-        <div className="mt-3 flex items-center gap-2 text-sm">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
+      {isSuper && (
+        <>
+          <form
+            className="mt-6 flex flex-wrap items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPage(1);
+              setSubmitted(search.trim());
+            }}
           >
-            Previous
-          </button>
-          <span className="text-xs text-muted-foreground">
-            Page {page} of {pageCount}
-          </span>
-          <button
-            type="button"
-            disabled={page >= pageCount}
-            onClick={() => setPage((current) => current + 1)}
-            className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search action, target, or summary"
+              className="h-9 w-full max-w-sm rounded-md border border-border bg-surface px-3 text-sm"
+            />
+            <button
+              type="submit"
+              className="h-9 rounded-md border border-border bg-surface px-3 text-sm hover:bg-surface-elevated"
+            >
+              Search
+            </button>
+            <span className="text-xs text-muted-foreground">{total} entries</span>
+          </form>
+
+          {mutations.data?.unavailable && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              The audit table is not available yet. Apply the admin_audit_log migration, then retry.
+            </p>
+          )}
+
+          <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-elevated text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">When</th>
+                  <th className="px-4 py-3 text-left font-medium">Action</th>
+                  <th className="px-4 py-3 text-left font-medium">Target</th>
+                  <th className="px-4 py-3 text-left font-medium">Summary</th>
+                  <th className="px-4 py-3 text-left font-medium">Actor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mutations.isLoading && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      Loading…
+                    </td>
+                  </tr>
+                )}
+                {!mutations.isLoading && mutationRows.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      No content, invoice, or user mutations recorded yet.
+                    </td>
+                  </tr>
+                )}
+                {mutationRows.map((row) => (
+                  <tr key={row.id} className="border-t border-border/60">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                      {new Date(row.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{row.action}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <div>{row.target_table}</div>
+                      <div className="text-muted-foreground">{row.target_id}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{row.summary}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {row.actor_id ?? "unknown"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pageCount > 1 && (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-muted-foreground">
+                Page {page} of {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={page >= pageCount}
+                onClick={() => setPage((current) => current + 1)}
+                className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {who?.isSuperAdmin && (
