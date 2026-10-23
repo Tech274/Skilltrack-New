@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/admin-auth.server";
+import { requireAdmin, requireLeadAccess } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -128,6 +128,14 @@ export const getAdminRoles = createServerFn({ method: "GET" })
     // not a throw, so the layout can show the access-required screen.
     // Admins still pass requireAdmin, the same gate as every other admin function.
     if (ctx.isAnyAdmin) await requireAdmin(context.userId);
+    let leadAccess = false;
+    try {
+      await requireLeadAccess(context.userId);
+      leadAccess = true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("lead access")) throw error;
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
     return {
@@ -135,6 +143,7 @@ export const getAdminRoles = createServerFn({ method: "GET" })
       email: u?.user?.email ?? null,
       isSuperAdmin: ctx.isSuperAdmin,
       isAnyAdmin: ctx.isAnyAdmin,
+      leadAccess,
       permissions: Array.from(ctx.permissions),
     };
   });

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -9,10 +10,8 @@ import {
   BookOpen,
   GraduationCap,
   ClipboardList,
-  Wallet,
   Shield,
   Bell,
-  BarChart3,
   ScrollText,
   KeyRound,
   Package,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 import { getAdminRoles } from "@/lib/admin-dashboard.functions";
 import { AdminErrorScreen } from "@/components/admin/admin-error";
-import { ParkedModuleBanner } from "@/components/admin/parked-module-banner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin Portal — SkillTrack-365" }] }),
@@ -40,17 +38,15 @@ export const Route = createFileRoute("/_authenticated/admin")({
 //   permission: string  — visible if user holds that permission (Super Admin holds all)
 //   superOnly: true     — visible to Super Admin only
 //   anyAdmin: true      — visible to any admin-flavor role or Super Admin
-// Optional:
-//   parked: true        — hidden from default sidebar; route kept; banner on direct hit
+//   leadAccess: true    — visible only when requireLeadAccess passes
 type NavItem = {
   to: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   permission?: string;
   superOnly?: boolean;
   anyAdmin?: boolean;
-  /** Unused SaaS chrome — hide from nav, keep route + show parked banner. */
-  parked?: boolean;
+  leadAccess?: boolean;
 };
 
 const sections: Array<{ label: string; items: NavItem[] }> = [
@@ -58,9 +54,8 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
     label: "Overview",
     items: [
       { to: "/admin", label: "Dashboard", icon: LayoutDashboard, anyAdmin: true },
-      // P2b: pin Sales Leads for Ops-first (Vivek, no Sales hire)
-      { to: "/admin/sales-leads", label: "Sales Leads", icon: Users, anyAdmin: true },
-      { to: "/admin/leads", label: "Leads", icon: ClipboardList, anyAdmin: true },
+      // One leads entry. /admin/leads redirects here. Saved form rows sit under the sheet pipeline.
+      { to: "/admin/sales-leads", label: "Leads", icon: Users, leadAccess: true },
       { to: "/admin/marketplace", label: "Marketplace", icon: Store, anyAdmin: true },
       { to: "/admin/campaigns", label: "Homepage Campaigns", icon: Sparkles, anyAdmin: true },
     ],
@@ -70,13 +65,6 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { to: "/admin/users", label: "User Management", icon: Users, superOnly: true },
       { to: "/admin/learners", label: "Learners", icon: GraduationCap, anyAdmin: true },
-      {
-        to: "/admin/subscribers",
-        label: "Subscribers",
-        icon: Wallet,
-        permission: "subscribers.view",
-        parked: true,
-      },
     ],
   },
   {
@@ -131,7 +119,6 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
         icon: Sparkles,
         permission: "reconciliation.manage",
       },
-      { to: "/admin/subscription", label: "My Plan", icon: Wallet, superOnly: true, parked: true },
     ],
   },
   {
@@ -142,13 +129,6 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
         label: "Access Control",
         icon: KeyRound,
         permission: "access_rules.manage",
-      },
-      {
-        to: "/admin/reports",
-        label: "Reports & Analytics",
-        icon: BarChart3,
-        permission: "reports.view",
-        parked: true,
       },
       {
         to: "/admin/notifications",
@@ -170,17 +150,6 @@ const sections: Array<{ label: string; items: NavItem[] }> = [
     ],
   },
 ];
-
-/** Match a parked nav item for the current path (direct URL hits). */
-function findParkedAdminNavItem(pathname: string): NavItem | undefined {
-  for (const s of sections) {
-    for (const it of s.items) {
-      if (!it.parked) continue;
-      if (pathname === it.to || pathname.startsWith(`${it.to}/`)) return it;
-    }
-  }
-  return undefined;
-}
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -228,6 +197,7 @@ function AdminLayout() {
   const can = (it: NavItem): boolean => {
     if (who.isSuperAdmin) return true; // super-admin sees everything
     if (it.superOnly) return false;
+    if (it.leadAccess) return Boolean(who.leadAccess);
     if (it.permission) return permSet.has(it.permission);
     if (it.anyAdmin) return who.isAnyAdmin;
     return false;
@@ -238,8 +208,6 @@ function AdminLayout() {
   for (const r of who.roles) {
     if (ROLE_LABEL[r] && !badges.includes(ROLE_LABEL[r])) badges.push(ROLE_LABEL[r]);
   }
-
-  const parkedHit = findParkedAdminNavItem(pathname);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
@@ -263,7 +231,7 @@ function AdminLayout() {
         <nav className="flex-1 space-y-4 overflow-y-auto">
           {sections.map((s) => {
             // Parked SaaS chrome stays out of the default sidebar (routes kept).
-            const visible = s.items.filter((it) => can(it) && !it.parked);
+            const visible = s.items.filter((it) => can(it));
             if (visible.length === 0) return null;
             return (
               <div key={s.label}>
@@ -294,7 +262,6 @@ function AdminLayout() {
         </nav>
       </aside>
       <div className="flex-1 min-w-0">
-        {parkedHit ? <ParkedModuleBanner label={parkedHit.label} /> : null}
         <Outlet />
       </div>
     </div>
