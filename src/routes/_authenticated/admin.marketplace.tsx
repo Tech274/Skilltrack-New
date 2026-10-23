@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/marketplace")({
   head: () => ({ meta: [{ title: "Marketplace catalog — Admin — SkillTrack-365" }] }),
@@ -54,10 +55,27 @@ function MarketplaceAdminPage() {
   const seed = useServerFn(seedMarketplaceCatalog);
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("oems");
+  const [certOemId, setCertOemId] = useState("all");
+  const [certPage, setCertPage] = useState(1);
+  const [skuCertId, setSkuCertId] = useState("all");
+  const [skuPage, setSkuPage] = useState(1);
+  const [skuSearch, setSkuSearch] = useState("");
+  const [certChoiceSearch, setCertChoiceSearch] = useState("");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin", "marketplace-catalog"],
-    queryFn: () => list(),
+    queryKey: ["admin", "marketplace-catalog", certOemId, certPage, skuCertId, skuPage, skuSearch, certChoiceSearch],
+    queryFn: () =>
+      list({
+        data: {
+          certPage,
+          skuPage,
+          pageSize: 50,
+          certOemId: certOemId === "all" ? undefined : certOemId,
+          skuCertId: skuCertId === "all" ? undefined : skuCertId,
+          skuSearch: skuSearch || undefined,
+          certChoiceSearch: certChoiceSearch || undefined,
+        },
+      }),
     retry: false,
   });
 
@@ -94,9 +112,9 @@ function MarketplaceAdminPage() {
       <div className="mt-6 flex flex-wrap gap-2">
         {(
           [
-            ["oems", `OEMs (${oems.length})`],
-            ["certs", `Certs (${certs.length})`],
-            ["skus", `SKUs (${skus.length})`],
+            ["oems", `OEMs (${data?.oemTotal ?? oems.length})`],
+            ["certs", `Certs (${data?.certTotal ?? certs.length})`],
+            ["skus", `SKUs (${data?.skuTotal ?? skus.length})`],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -125,9 +143,31 @@ function MarketplaceAdminPage() {
       ) : tab === "oems" ? (
         <OemsTable oems={oems} />
       ) : tab === "certs" ? (
-        <CertsTable certs={certs} oems={oems} />
+        <CertsTable
+          certs={certs}
+          oems={oems}
+          oemFilter={certOemId}
+          onOemFilter={(value) => { setCertOemId(value); setCertPage(1); }}
+          page={data?.certPage ?? certPage}
+          pageSize={data?.pageSize ?? 50}
+          total={data?.certTotal ?? 0}
+          onPage={setCertPage}
+        />
       ) : (
-        <SkusTable skus={skus} certs={certs} />
+        <SkusTable
+          skus={skus}
+          certChoices={data?.certChoices ?? []}
+          certFilter={skuCertId}
+          onCertFilter={(value) => { setSkuCertId(value); setSkuPage(1); }}
+          search={skuSearch}
+          onSearch={(value) => { setSkuSearch(value); setSkuPage(1); }}
+          certChoiceSearch={certChoiceSearch}
+          onCertChoiceSearch={setCertChoiceSearch}
+          page={data?.skuPage ?? skuPage}
+          pageSize={data?.pageSize ?? 50}
+          total={data?.skuTotal ?? 0}
+          onPage={setSkuPage}
+        />
       )}
     </div>
   );
@@ -330,15 +370,32 @@ function OemDialog({
   );
 }
 
-function CertsTable({ certs, oems }: { certs: any[]; oems: any[] }) {
+function CertsTable({
+  certs,
+  oems,
+  oemFilter,
+  onOemFilter,
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  certs: any[];
+  oems: any[];
+  oemFilter: string;
+  onOemFilter: (value: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
   const upsert = useServerFn(upsertMarketplaceCert);
   const setActive = useServerFn(setMarketplaceCertActive);
   const qc = useQueryClient();
-  const [oemFilter, setOemFilter] = useState("all");
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
   const oemName = useMemo(() => Object.fromEntries(oems.map((o) => [o.id, o])), [oems]);
-  const rows = oemFilter === "all" ? certs : certs.filter((c) => c.oem_id === oemFilter);
+  const rows = certs;
 
   const save = useMutation({
     mutationFn: (payload: any) => upsert({ data: payload }),
@@ -364,7 +421,7 @@ function CertsTable({ certs, oems }: { certs: any[]; oems: any[] }) {
         <select
           className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
           value={oemFilter}
-          onChange={(e) => setOemFilter(e.target.value)}
+          onChange={(e) => onOemFilter(e.target.value)}
         >
           <option value="all">All OEMs</option>
           {oems.map((o) => (
@@ -443,6 +500,7 @@ function CertsTable({ certs, oems }: { certs: any[]; oems: any[] }) {
             )}
           </tbody>
         </table>
+        <AdminListPager page={page} pageSize={pageSize} total={total} onPage={onPage} />
       </div>
       <CertDialog
         open={open}
@@ -570,15 +628,50 @@ function CertDialog({
   );
 }
 
-function SkusTable({ skus, certs }: { skus: any[]; certs: any[] }) {
+function SkusTable({
+  skus,
+  certChoices,
+  certFilter,
+  onCertFilter,
+  search,
+  onSearch,
+  certChoiceSearch,
+  onCertChoiceSearch,
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  skus: any[];
+  certChoices: any[];
+  certFilter: string;
+  onCertFilter: (value: string) => void;
+  search: string;
+  onSearch: (value: string) => void;
+  certChoiceSearch: string;
+  onCertChoiceSearch: (value: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
   const upsert = useServerFn(upsertMarketplaceSku);
   const setActive = useServerFn(setMarketplaceSkuActive);
   const qc = useQueryClient();
-  const [certFilter, setCertFilter] = useState("all");
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
-  const certName = useMemo(() => Object.fromEntries(certs.map((c) => [c.id, c])), [certs]);
-  const rows = certFilter === "all" ? skus : skus.filter((s) => s.cert_id === certFilter);
+  const certName = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const cert of certChoices) map[cert.id] = cert;
+    for (const sku of skus) {
+      if (sku.cert_id && sku.marketplace_certs) {
+        map[sku.cert_id] = { ...map[sku.cert_id], ...sku.marketplace_certs, id: sku.cert_id };
+      }
+    }
+    return map;
+  }, [certChoices, skus]);
+  const dialogCerts = Object.values(certName);
+  const rows = skus;
 
   const save = useMutation({
     mutationFn: (payload: any) => upsert({ data: payload }),
@@ -601,24 +694,36 @@ function SkusTable({ skus, certs }: { skus: any[]; certs: any[] }) {
   return (
     <div className="mt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
+        <input
+          value={certChoiceSearch}
+          onChange={(e) => onCertChoiceSearch(e.target.value)}
+          placeholder="Find certification"
+          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+        />
         <select
           className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
           value={certFilter}
-          onChange={(e) => setCertFilter(e.target.value)}
+          onChange={(e) => onCertFilter(e.target.value)}
         >
           <option value="all">All certs</option>
-          {certs.map((c) => (
+          {certChoices.map((c) => (
             <option key={c.id} value={c.id}>
               {c.short_name}
             </option>
           ))}
         </select>
+        <input
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Search SKU title"
+          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+        />
         <Button
           onClick={() => {
             setEditing(null);
             setOpen(true);
           }}
-          disabled={certs.length === 0}
+          disabled={dialogCerts.length === 0}
         >
           <Plus size={16} className="mr-1.5" /> New SKU
         </Button>
@@ -679,12 +784,13 @@ function SkusTable({ skus, certs }: { skus: any[]; certs: any[] }) {
             )}
           </tbody>
         </table>
+        <AdminListPager page={page} pageSize={pageSize} total={total} onPage={onPage} />
       </div>
       <SkuDialog
         open={open}
         onOpenChange={setOpen}
         editing={editing}
-        certs={certs}
+        certs={dialogCerts}
         pending={save.isPending}
         onSave={(payload) => save.mutate(payload)}
       />

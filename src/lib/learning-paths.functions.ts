@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 
 async function assertAdminOrOrgManager(ctx: any, orgId?: string | null) {
   const { data: isAdmin } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
@@ -75,16 +76,27 @@ async function writeVersion(admin: any, pathId: string, orgId: string | null, au
 
 export const listLearningPaths = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { org_id?: string | null }) => z.object({ org_id: z.string().uuid().nullable().optional() }).parse(d))
+  .inputValidator((d: { org_id?: string | null; page?: number; pageSize?: number; search?: string }) =>
+    z.object({
+      org_id: z.string().uuid().nullable().optional(),
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
+      search: z.string().max(200).optional(),
+    }).parse(d ?? {}),
+  )
   .handler(async ({ data, context }) => {
-    const q = context.supabase
+    const bounds = pageBounds(data.page, data.pageSize);
+    let q = context.supabase
       .from("learning_paths")
-      .select("id, org_id, title, target_certification_slug, difficulty, status, estimated_hours, updated_at")
-      .order("updated_at", { ascending: false });
-    if (data.org_id) q.eq("org_id", data.org_id);
-    const { data: rows, error } = await q;
+      .select("id, org_id, title, target_certification_slug, difficulty, status, estimated_hours, updated_at", { count: "exact" })
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (data.org_id) q = q.eq("org_id", data.org_id);
+    const pattern = ilikePattern(data.search);
+    if (pattern) q = q.or(`title.ilike.${pattern},target_certification_slug.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return { rows: rows ?? [] };
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 export const getLearningPath = createServerFn({ method: "POST" })

@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 
 export const CAMPAIGN_TYPES = [
   "platform",
@@ -101,16 +102,33 @@ export const listLiveCampaigns = createServerFn({ method: "GET" }).handler(async
   }
 });
 
-/** Admin: all campaigns. RLS restricts to admin / content_admin / super admin. */
+/** Admin: one page of campaigns. RLS restricts reads to admin / content_admin / super admin. */
 export const listCampaignsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator(
+    z.object({
+      page: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
+      search: z.string().max(200).optional(),
+    }).optional(),
+  )
+  .handler(async ({ data, context }) => {
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    let q = context.supabase
       .from("campaigns")
-      .select("*")
-      .order("priority", { ascending: true });
+      .select("*", { count: "exact" })
+      .order("priority", { ascending: true })
+      .order("id", { ascending: false });
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`title.ilike.${pattern},headline.ilike.${pattern},slug.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return resolveImages(context.supabase.storage, (data ?? []) as Campaign[]);
+    return {
+      rows: await resolveImages(context.supabase.storage, (rows ?? []) as Campaign[]),
+      total: count ?? 0,
+      page: bounds.page,
+      pageSize: bounds.pageSize,
+    };
   });
 
 const urlOrPath = z

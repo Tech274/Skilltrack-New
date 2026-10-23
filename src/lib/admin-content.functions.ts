@@ -3,6 +3,7 @@ import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 
 const WRITE_ROLES = ["admin", "content_admin"] as const;
 const READ_ROLES = ["admin", "content_admin", "support_admin"] as const;
@@ -32,20 +33,24 @@ async function assertWrite(supabase: any, userId: string) {
 
 export const listCertifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ status: z.string().optional(), search: z.string().optional() }).partial().optional())
+  .inputValidator(z.object({
+    status: z.string().optional(),
+    search: z.string().max(200).optional(),
+    page: z.number().int().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).optional(),
+  }).partial().optional())
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin.from("certifications_catalog").select("*").order("created_at", { ascending: false });
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    let q = supabaseAdmin.from("certifications_catalog").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`name.ilike.${s},code.ilike.${s},vendor.ilike.${s},slug.ilike.${s}`);
-    }
-    const { data: rows, error } = await q;
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`name.ilike.${pattern},code.ilike.${pattern},vendor.ilike.${pattern},slug.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 const certInput = z.object({
@@ -119,23 +124,24 @@ export const listResources = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     status: z.string().optional(), tier: z.string().optional(),
-    certification_slug: z.string().optional(), search: z.string().optional(),
+    certification_slug: z.string().optional(), search: z.string().max(200).optional(),
+    page: z.number().int().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).optional(),
   }).partial().optional())
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin.from("study_resources").select("*").order("created_at", { ascending: false });
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    let q = supabaseAdmin.from("study_resources").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
     if (data?.tier && data.tier !== "all") q = q.eq("access_tier", data.tier);
     if (data?.certification_slug) q = q.eq("certification_slug", data.certification_slug);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`title.ilike.${s},description.ilike.${s},module.ilike.${s},topic.ilike.${s}`);
-    }
-    const { data: rows, error } = await q;
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`title.ilike.${pattern},description.ilike.${pattern},module.ilike.${pattern},topic.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 const resourceInput = z.object({
@@ -245,20 +251,24 @@ export const getSignedDownloadUrl = createServerFn({ method: "POST" })
 
 export const listMockExams = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ status: z.string().optional(), search: z.string().optional() }).partial().optional())
+  .inputValidator(z.object({
+    status: z.string().optional(),
+    search: z.string().max(200).optional(),
+    page: z.number().int().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).optional(),
+  }).partial().optional())
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin.from("mock_exams").select("*").order("created_at", { ascending: false });
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    let q = supabaseAdmin.from("mock_exams").select("*", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false });
     if (data?.status && data.status !== "all") q = q.eq("status", data.status);
-    if (data?.search) {
-      const s = `%${data.search}%`;
-      q = q.or(`title.ilike.${s},description.ilike.${s},certification_slug.ilike.${s}`);
-    }
-    const { data: rows, error } = await q;
+    const pattern = ilikePattern(data?.search);
+    if (pattern) q = q.or(`title.ilike.${pattern},description.ilike.${pattern},certification_slug.ilike.${pattern}`);
+    const { data: rows, error, count } = await q.range(bounds.from, bounds.to);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { rows: rows ?? [], total: count ?? 0, page: bounds.page, pageSize: bounds.pageSize };
   });
 
 export const getMockExam = createServerFn({ method: "GET" })

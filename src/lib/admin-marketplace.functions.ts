@@ -9,6 +9,7 @@ import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern, pageBounds } from "@/lib/admin-page";
 import {
   CERT_TO_OEM,
   MARKETPLACE_CERTS,
@@ -47,19 +48,69 @@ async function assertWrite(supabase: any, userId: string) {
 
 export const listMarketplaceCatalogAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator(
+    z.object({
+      certPage: z.number().int().min(1).optional(),
+      skuPage: z.number().int().min(1).optional(),
+      pageSize: z.number().int().min(1).max(100).optional(),
+      certOemId: z.string().uuid().optional(),
+      skuCertId: z.string().uuid().optional(),
+      skuSearch: z.string().max(200).optional(),
+      certChoiceSearch: z.string().max(200).optional(),
+    }).partial().optional(),
+  )
+  .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [oems, certs, skus] = await Promise.all([
-      supabaseAdmin.from("marketplace_oems").select("*").order("sort_order"),
-      supabaseAdmin.from("marketplace_certs").select("*").order("sort_order"),
-      supabaseAdmin.from("marketplace_skus").select("*").order("sku_type"),
+    const pageSize = pageBounds(1, data?.pageSize).pageSize;
+    const certBounds = pageBounds(data?.certPage, pageSize);
+    const skuBounds = pageBounds(data?.skuPage, pageSize);
+
+    let certsQ = supabaseAdmin.from("marketplace_certs").select("*", { count: "exact" }).order("sort_order").order("id", { ascending: false });
+    if (data?.certOemId) certsQ = certsQ.eq("oem_id", data.certOemId);
+
+    let skusQ = supabaseAdmin
+      .from("marketplace_skus")
+      .select("*, marketplace_certs(id, short_name, name)", { count: "exact" })
+      .order("title")
+      .order("id", { ascending: false });
+    if (data?.skuCertId) skusQ = skusQ.eq("cert_id", data.skuCertId);
+    const skuPattern = ilikePattern(data?.skuSearch);
+    if (skuPattern) skusQ = skusQ.ilike("title", skuPattern);
+
+    let choicesQ = supabaseAdmin
+      .from("marketplace_certs")
+      .select("id, short_name, name, oem_id")
+      .order("short_name")
+      .limit(100);
+    const choicePattern = ilikePattern(data?.certChoiceSearch);
+    if (choicePattern) {
+      choicesQ = choicesQ.or(`short_name.ilike.${choicePattern},name.ilike.${choicePattern},key.ilike.${choicePattern}`);
+    }
+
+    const [oems, certs, skus, choices] = await Promise.all([
+      supabaseAdmin.from("marketplace_oems").select("*", { count: "exact" }).order("sort_order").order("id", { ascending: false }).range(0, 199),
+      certsQ.range(certBounds.from, certBounds.to),
+      skusQ.range(skuBounds.from, skuBounds.to),
+      choicesQ,
     ]);
     if (oems.error) throw new Error(oems.error.message);
     if (certs.error) throw new Error(certs.error.message);
     if (skus.error) throw new Error(skus.error.message);
-    return { oems: oems.data ?? [], certs: certs.data ?? [], skus: skus.data ?? [] };
+    if (choices.error) throw new Error(choices.error.message);
+    return {
+      oems: oems.data ?? [],
+      oemTotal: oems.count ?? 0,
+      certs: certs.data ?? [],
+      certTotal: certs.count ?? 0,
+      certPage: certBounds.page,
+      skus: skus.data ?? [],
+      skuTotal: skus.count ?? 0,
+      skuPage: skuBounds.page,
+      pageSize,
+      certChoices: choices.data ?? [],
+    };
   });
 
 const oemInput = z.object({

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { isSuperAdminUser } from "@/lib/super-admin.server";
+import { csvCell, exportWindowEnd, ilikePattern } from "@/lib/admin-page";
 
 async function assertSuper(userId: string) {
   if (!(await isSuperAdminUser(userId))) {
@@ -76,18 +77,16 @@ export const listSuperAdmins = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     const ids = (rows ?? []).map((r) => r.user_id);
-    const granters = Array.from(new Set((rows ?? []).map((r) => r.granted_by).filter(Boolean))) as string[];
-    const all = Array.from(new Set([...ids, ...granters]));
-    const emailMap = new Map<string, string | null>();
-    for (const id of all) {
-      const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-      emailMap.set(id, data?.user?.email ?? null);
-    }
+    const granters = Array.from(
+      new Set((rows ?? []).map((r) => r.granted_by).filter(Boolean)),
+    ) as string[];
+    const { loadUserEmails } = await import("@/lib/admin-directory.server");
+    const emailMap = await loadUserEmails(supabaseAdmin, [...ids, ...granters]);
     return (rows ?? []).map((r) => ({
       user_id: r.user_id,
       email: emailMap.get(r.user_id) ?? null,
       granted_by: r.granted_by,
-      granted_by_email: r.granted_by ? emailMap.get(r.granted_by) ?? null : null,
+      granted_by_email: r.granted_by ? (emailMap.get(r.granted_by) ?? null) : null,
       created_at: r.created_at,
     }));
   });
@@ -100,7 +99,9 @@ const grantSchema = z.object({
 
 export const grantSuperAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; confirm: true; acknowledgement: "GRANT" }) => grantSchema.parse(d))
+  .inputValidator((d: { userId: string; confirm: true; acknowledgement: "GRANT" }) =>
+    grantSchema.parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertSuper(context.userId);
     await assertNotRateLimited(context.userId);
@@ -132,7 +133,9 @@ const revokeSchema = z.object({
 
 export const revokeSuperAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; confirm: true; acknowledgement: "REVOKE" }) => revokeSchema.parse(d))
+  .inputValidator((d: { userId: string; confirm: true; acknowledgement: "REVOKE" }) =>
+    revokeSchema.parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertSuper(context.userId);
     await assertNotRateLimited(context.userId);
@@ -147,10 +150,7 @@ export const revokeSuperAdmin = createServerFn({ method: "POST" })
       throw new Error("Cannot revoke the last remaining Super Admin.");
     }
     const { data: tu } = await supabaseAdmin.auth.admin.getUserById(data.userId);
-    const { error } = await supabaseAdmin
-      .from("super_admins")
-      .delete()
-      .eq("user_id", data.userId);
+    const { error } = await supabaseAdmin.from("super_admins").delete().eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     const { data: actor } = await supabaseAdmin.auth.admin.getUserById(context.userId);
     await notifyAdmins({
@@ -179,29 +179,46 @@ type AuditFilters = z.infer<typeof auditFiltersSchema>;
 
 async function queryAuditRows(f: AuditFilters, opts: { paged: boolean }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let q = supabaseAdmin
-    .from("super_admin_audit_log")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false });
-
-  if (f.action) q = q.eq("action", f.action);
-  if (f.actor) q = q.or(`actor_email.ilike.%${f.actor}%,actor_id.eq.${isUuid(f.actor) ? f.actor : "00000000-0000-0000-0000-000000000000"}`);
-  if (f.targetUserId) {
-    if (isUuid(f.targetUserId)) q = q.eq("target_user_id", f.targetUserId);
-    else q = q.ilike("target_email", `%${f.targetUserId}%`);
-  }
-  if (f.from) q = q.gte("created_at", f.from);
-  if (f.to) q = q.lte("created_at", f.to);
+  const startedAt = new Date().toISOString();
+  const build = (forExport: boolean) => {
+    let q = supabaseAdmin
+      .from("super_admin_audit_log")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (f.action) q = q.eq("action", f.action);
+    if (f.actor) {
+      const pattern = ilikePattern(f.actor);
+      const actorId = isUuid(f.actor) ? f.actor : "00000000-0000-0000-0000-000000000000";
+      if (pattern) q = q.or(`actor_email.ilike.${pattern},actor_id.eq.${actorId}`);
+    }
+    if (f.targetUserId) {
+      if (isUuid(f.targetUserId)) q = q.eq("target_user_id", f.targetUserId);
+      else {
+        const pattern = ilikePattern(f.targetUserId);
+        if (pattern) q = q.ilike("target_email", pattern);
+      }
+    }
+    if (f.from) q = q.gte("created_at", f.from);
+    const end = forExport ? exportWindowEnd(f.to, startedAt) : f.to;
+    if (end) q = q.lte("created_at", end);
+    return q;
+  };
 
   if (opts.paged) {
     const from = (f.page - 1) * f.pageSize;
-    q = q.range(from, from + f.pageSize - 1);
-  } else {
-    q = q.limit(10000);
+    const { data, error, count } = await build(false).range(from, from + f.pageSize - 1);
+    if (error) throw new Error(error.message);
+    return { rows: data ?? [], total: count ?? 0 };
   }
-  const { data, error, count } = await q;
-  if (error) throw new Error(error.message);
-  return { rows: data ?? [], total: count ?? 0 };
+
+  const { collectPagedRows } = await import("@/lib/admin-page");
+  const rows = await collectPagedRows(async (from, to) => {
+    const { data, error } = await build(true).range(from, to);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+  return { rows, total: rows.length };
 }
 
 function isUuid(s: string): boolean {
@@ -222,17 +239,32 @@ export const exportSuperAdminAuditLog = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuper(context.userId);
     const { rows } = await queryAuditRows(data, { paged: false });
-    const header = ["created_at", "action", "actor_email", "actor_id", "target_email", "target_user_id", "source", "metadata"];
-    const esc = (v: unknown) => {
-      const s = v == null ? "" : typeof v === "string" ? v : JSON.stringify(v);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
+    const header = [
+      "created_at",
+      "action",
+      "actor_email",
+      "actor_id",
+      "target_email",
+      "target_user_id",
+      "source",
+      "metadata",
+    ];
     const lines = [header.join(",")];
     for (const r of rows as any[]) {
-      lines.push([
-        r.created_at, r.action, r.actor_email, r.actor_id,
-        r.target_email, r.target_user_id, r.source, r.metadata,
-      ].map(esc).join(","));
+      lines.push(
+        [
+          r.created_at,
+          r.action,
+          r.actor_email,
+          r.actor_id,
+          r.target_email,
+          r.target_user_id,
+          r.source,
+          r.metadata,
+        ]
+          .map(csvCell)
+          .join(","),
+      );
     }
     return { csv: lines.join("\n"), count: rows.length };
   });

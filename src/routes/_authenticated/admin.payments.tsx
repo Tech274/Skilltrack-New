@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/payments")({
   head: () => ({ meta: [{ title: "Payments — Admin — SkillTrack-365" }] }),
@@ -26,12 +27,14 @@ function PaymentsPage() {
   const [status, setStatusFilter] = useState("all");
   const [mode, setMode] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["admin", "payments", status, mode, search],
-    queryFn: () => list({ data: { status, mode, search } }),
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "payments", status, mode, search, page],
+    queryFn: () => list({ data: { status, mode, search, page, pageSize: 50 } }),
   });
+  const rows = data?.rows ?? [];
 
   const statusMut = useMutation({
     mutationFn: ({ id, status }: { id: string; status: any }) => setStatus({ data: { id, status } }),
@@ -65,18 +68,18 @@ function PaymentsPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Payments" value={String(totals.count)} />
-        <Kpi label="Successful" value={`₹ ${totals.success.toFixed(0)}`} tone="emerald" />
-        <Kpi label="Pending" value={`₹ ${totals.pending.toFixed(0)}`} tone="amber" />
-        <Kpi label="Refunded" value={`₹ ${totals.refunded.toFixed(0)}`} />
+        <Kpi label="Payments on page" value={String(totals.count)} />
+        <Kpi label="Successful on page" value={`₹ ${totals.success.toFixed(0)}`} tone="emerald" />
+        <Kpi label="Pending on page" value={`₹ ${totals.pending.toFixed(0)}`} tone="amber" />
+        <Kpi label="Refunded on page" value={`₹ ${totals.refunded.toFixed(0)}`} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reference / remarks" className="h-9 w-72 pl-9" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search reference / remarks" className="h-9 w-72 pl-9" />
         </div>
-        <Select value={status} onValueChange={setStatusFilter}>
+        <Select value={status} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
           <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
@@ -86,7 +89,7 @@ function PaymentsPage() {
             <SelectItem value="refunded">Refunded</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={mode} onValueChange={setMode}>
+        <Select value={mode} onValueChange={(value) => { setMode(value); setPage(1); }}>
           <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All modes</SelectItem>
@@ -154,6 +157,7 @@ function PaymentsPage() {
             ))}
           </tbody>
         </table>
+        <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} />
       </div>
     </div>
   );

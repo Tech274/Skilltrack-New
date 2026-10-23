@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listLearners, createLearner, importLearnersCsv, setLearnerStatus } from "@/lib/admin-learners.functions";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/learners")({
   head: () => ({ meta: [{ title: "Learners — Admin — SkillTrack-365" }] }),
@@ -60,11 +61,13 @@ function LearnersPage() {
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "disabled">("all");
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "learners", search, status],
-    queryFn: () => fnList({ data: { search: search || undefined, status } }),
+    queryKey: ["admin", "learners", search, status, page],
+    queryFn: () => fnList({ data: { search: search || undefined, status, page, pageSize: 50 } }),
   });
+  const rows = data?.rows ?? [];
 
   const setStatusMut = useMutation({
     mutationFn: (v: { id: string; status: "active" | "disabled" }) => fnSetStatus({ data: v }),
@@ -97,16 +100,16 @@ function LearnersPage() {
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, target role…" className="pl-8" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, email, target role…" className="pl-8" />
         </div>
-        <Tabs value={status} onValueChange={(v: any) => setStatus(v)}>
+        <Tabs value={status} onValueChange={(v: any) => { setStatus(v); setPage(1); }}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="disabled">Disabled</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="ml-auto text-xs text-muted-foreground">{data?.length ?? 0} learners</div>
+        <div className="ml-auto text-xs text-muted-foreground">{data?.total ?? 0} learners{data?.capped ? " (capped)" : ""}</div>
       </div>
 
       <div className="mt-4 rounded-lg border border-border/60 bg-surface/40">
@@ -126,10 +129,10 @@ function LearnersPage() {
             {isLoading && (
               <TableRow><TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">Loading…</TableCell></TableRow>
             )}
-            {!isLoading && (data?.length ?? 0) === 0 && (
+            {!isLoading && rows.length === 0 && (
               <TableRow><TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No learners yet. Add one or import a CSV.</TableCell></TableRow>
             )}
-            {(data ?? []).map((l: any) => (
+            {rows.map((l: any) => (
               <TableRow key={l.id}>
                 <TableCell className="font-medium">
                   <Link to="/admin/learners/$id" params={{ id: l.id }} className="hover:underline">{l.display_name || "—"}</Link>
@@ -155,6 +158,7 @@ function LearnersPage() {
             ))}
           </TableBody>
         </Table>
+        <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} capped={data?.capped} />
       </div>
     </div>
   );

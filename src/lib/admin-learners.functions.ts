@@ -3,6 +3,8 @@ import { isSuperAdminUser } from "@/lib/super-admin.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { directoryLearner, queryAdminDirectory } from "@/lib/admin-directory.server";
+import { pageBounds } from "@/lib/admin-page";
 
 const WRITE_ROLES = ["admin", "support_admin"] as const;
 const READ_ROLES = ["admin", "support_admin", "finance_admin"] as const;
@@ -26,67 +28,100 @@ async function assertWrite(supabase: any, userId: string) {
   }
 }
 
-/** Returns { learners: [{ id, email, display_name, headline, country, target_role, timezone, status, created_at }] } */
+/** Returns one page of learners. Email search uses admin_directory_page so it is not capped at 1000. */
 export const listLearners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ search: z.string().optional(), status: z.enum(["all","active","disabled"]).optional() }).partial().optional())
+  .inputValidator(z.object({
+    search: z.string().max(200).optional(),
+    status: z.enum(["all", "active", "disabled"]).optional(),
+    page: z.number().int().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).optional(),
+  }).partial().optional())
   .handler(async ({ data, context }) => {
     await requireAdmin(context.userId);
     await assertRead(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: learnerRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "learner");
-    const ids = (learnerRoles ?? []).map((r: any) => r.user_id);
-    if (ids.length === 0) return [];
-
-    const { data: profiles } = await supabaseAdmin
-      .from("profiles")
-      .select("id, display_name, headline, country, target_role, timezone, created_at")
-      .in("id", ids)
-      .order("created_at", { ascending: false });
-
-    // Page through auth users to get emails + banned/disabled state
-    const emailMap = new Map<string, { email: string | null; banned: boolean }>();
-    let page = 1;
-    // safety cap: 5 pages × 200 = 1000 learners
-    for (let i = 0; i < 5; i++) {
-      const { data: u } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      const users = u?.users ?? [];
-      for (const usr of users) {
-        emailMap.set(usr.id, { email: usr.email ?? null, banned: Boolean((usr as any).banned_until) });
-      }
-      if (users.length < 200) break;
-      page++;
-    }
-
-    let rows = (profiles ?? []).map((p: any) => {
-      const info = emailMap.get(p.id);
-      return {
-        id: p.id,
-        display_name: p.display_name,
-        email: info?.email ?? null,
-        headline: p.headline,
-        country: p.country,
-        target_role: p.target_role,
-        timezone: p.timezone,
-        status: info?.banned ? "disabled" : "active",
-        created_at: p.created_at,
-      };
+    const bounds = pageBounds(data?.page, data?.pageSize);
+    const directory = await queryAdminDirectory(supabaseAdmin, {
+      role: "learner",
+      search: data?.search,
+      status: data?.status,
+      page: bounds.page,
+      pageSize: bounds.pageSize,
+      order: "created_at",
     });
-
-    if (data?.search) {
-      const s = data.search.toLowerCase();
-      rows = rows.filter((r: any) =>
-        (r.display_name ?? "").toLowerCase().includes(s) ||
-        (r.email ?? "").toLowerCase().includes(s) ||
-        (r.target_role ?? "").toLowerCase().includes(s),
-      );
+    if (directory) {
+      return {
+        rows: directory.rows.map(directoryLearner),
+        total: directory.total,
+        page: directory.page,
+        pageSize: directory.pageSize,
+        capped: false,
+      };
     }
-    if (data?.status && data.status !== "all") {
-      rows = rows.filter((r: any) => r.status === data.status);
-    }
-    return rows;
+    return fallbackLearners(supabaseAdmin, data, bounds);
   });
+
+async function fallbackLearners(supabaseAdmin: any, data: { search?: string; status?: string } | undefined, bounds: { page: number; pageSize: number; from: number; to: number }) {
+  const { data: learnerRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "learner");
+  const ids = (learnerRoles ?? []).map((r: any) => r.user_id).slice(0, 1000);
+  if (ids.length === 0) {
+    return { rows: [], total: 0, page: bounds.page, pageSize: bounds.pageSize, capped: true };
+  }
+
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("id, display_name, headline, country, target_role, timezone, created_at")
+    .in("id", ids)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  const emailMap = new Map<string, { email: string | null; banned: boolean }>();
+  let page = 1;
+  for (let i = 0; i < 5; i++) {
+    const { data: u } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    const users = u?.users ?? [];
+    for (const usr of users) {
+      emailMap.set(usr.id, { email: usr.email ?? null, banned: Boolean((usr as any).banned_until && new Date((usr as any).banned_until).getTime() > Date.now()) });
+    }
+    if (users.length < 200) break;
+    page++;
+  }
+
+  let rows = (profiles ?? []).map((p: any) => {
+    const info = emailMap.get(p.id);
+    return {
+      id: p.id,
+      display_name: p.display_name,
+      email: info?.email ?? null,
+      headline: p.headline,
+      country: p.country,
+      target_role: p.target_role,
+      timezone: p.timezone,
+      status: info?.banned ? "disabled" : "active",
+      created_at: p.created_at,
+    };
+  });
+
+  const pattern = data?.search?.trim().toLowerCase();
+  if (pattern) {
+    rows = rows.filter((r: any) =>
+      (r.display_name ?? "").toLowerCase().includes(pattern) ||
+      (r.email ?? "").toLowerCase().includes(pattern) ||
+      (r.target_role ?? "").toLowerCase().includes(pattern),
+    );
+  }
+  if (data?.status && data.status !== "all") {
+    rows = rows.filter((r: any) => r.status === data.status);
+  }
+  return {
+    rows: rows.slice(bounds.from, bounds.from + bounds.pageSize),
+    total: rows.length,
+    page: bounds.page,
+    pageSize: bounds.pageSize,
+    capped: true,
+  };
+}
 
 export const getLearner = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -8,6 +8,8 @@ import { requireAdmin } from "@/lib/admin-auth.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ilikePattern } from "@/lib/admin-page";
+import { loadUserEmails } from "@/lib/admin-directory.server";
 
 const rangeInput = z.object({
   from: z.string().datetime().optional(),
@@ -203,8 +205,11 @@ export const listSubscribers = createServerFn({ method: "POST" })
         "id, scope, user_id, org_id, plan_code, billing_interval, seats, status, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, created_at",
         { count: "exact" },
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
+    const pattern = ilikePattern(data.search);
+    if (pattern) q = q.or(`plan_code.ilike.${pattern},stripe_customer_id.ilike.${pattern},scope.ilike.${pattern}`);
     const from = (data.page - 1) * data.pageSize;
     q = q.range(from, from + data.pageSize - 1);
     const { data: rows, count, error } = await q;
@@ -213,11 +218,7 @@ export const listSubscribers = createServerFn({ method: "POST" })
     // Hydrate user emails + org names
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id).filter(Boolean))) as string[];
     const orgIds = Array.from(new Set((rows ?? []).map((r) => r.org_id).filter(Boolean))) as string[];
-    const emailMap = new Map<string, string | null>();
-    for (const id of userIds) {
-      const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
-      emailMap.set(id, u?.user?.email ?? null);
-    }
+    const emailMap = await loadUserEmails(supabaseAdmin, userIds);
     const orgMap = new Map<string, string>();
     if (orgIds.length > 0) {
       const { data: orgs } = await supabaseAdmin.from("organizations").select("id, name").in("id", orgIds);

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { AdminListPager } from "@/components/admin/admin-list-pager";
 
 export const Route = createFileRoute("/_authenticated/admin/question-bank")({
   head: () => ({ meta: [{ title: "Question Bank — Admin — SkillTrack-365" }] }),
@@ -72,13 +73,15 @@ function QuestionBankPage() {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState<string>("all");
   const [cert, setCert] = useState("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Partial<Q> | null>(null);
   const [open, setOpen] = useState(false);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["admin", "question-bank", search, difficulty, cert],
-    queryFn: () => list({ data: { search, difficulty, certification_slug: cert || undefined } }),
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "question-bank", search, difficulty, cert, page],
+    queryFn: () => list({ data: { search, difficulty, certification_slug: cert || undefined, page, pageSize: 50 } }),
   });
+  const rows = data?.rows ?? [];
 
   const upsertMut = useMutation({
     mutationFn: (p: any) => upsert({ data: p }),
@@ -155,10 +158,10 @@ function QuestionBankPage() {
       <div className="flex flex-wrap gap-2">
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-8 w-72" placeholder="Search question text…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-8 w-72" placeholder="Search question text…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <Input className="w-48" placeholder="certification slug" value={cert} onChange={(e) => setCert(e.target.value)} />
-        <Select value={difficulty} onValueChange={setDifficulty}>
+        <Input className="w-48" placeholder="certification slug" value={cert} onChange={(e) => { setCert(e.target.value); setPage(1); }} />
+        <Select value={difficulty} onValueChange={(value) => { setDifficulty(value); setPage(1); }}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All difficulties</SelectItem>
@@ -203,6 +206,7 @@ function QuestionBankPage() {
             ))}
           </tbody>
         </table>
+        <AdminListPager page={data?.page ?? page} pageSize={data?.pageSize ?? 50} total={data?.total ?? 0} onPage={setPage} />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
